@@ -13,6 +13,3 @@ Package.resolved
 
 ## OS
 .DS_Store
-
-## xcodegen output (regenerable)
-Loka.xcodeproj
