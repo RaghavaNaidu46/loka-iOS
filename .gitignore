@@ -1,0 +1,20 @@
+## Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xcuserstate
+
+## SwiftPM
+.swiftpm/
+.build/
+Packages/
+Package.pins
+Package.resolved
+
+## OS
+.DS_Store
+
+## xcodegen output (regenerable)
+Loka.xcodeproj
