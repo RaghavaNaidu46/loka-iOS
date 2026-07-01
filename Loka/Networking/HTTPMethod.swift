@@ -1,0 +1,9 @@
+import Foundation
+
+/// HTTP methods used by the Loka API.
+enum HTTPMethod: String, Sendable {
+    case get = "GET"
+    case post = "POST"
+    case patch = "PATCH"
+    case delete = "DELETE"
+}

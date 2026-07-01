@@ -7,11 +7,12 @@ final class ServiceLocator {
     static let shared = ServiceLocator()
 
     let secureStorage: SecureStorage
-    let client: APIClient
+    let client: any APIClient
 
     private init() {
         let storage = KeychainSecureStorage()
         self.secureStorage = storage
-        self.client = HTTPAPIClient(baseURL: AppConfig.baseURL, secureStorage: storage)
+        let environment = LokaAPIEnvironment(baseURL: AppConfig.baseURL, secureStorage: storage)
+        self.client = HTTPAPIClient(environment: environment)
     }
 }

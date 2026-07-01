@@ -10,7 +10,7 @@ struct LokaApp: App {
             RootView()
                 .environmentObject(session)
                 .environmentObject(router)
-                .tint(LokaColor.accent)
+                .tint(LokaColor.brand)
         }
     }
 }

@@ -6,19 +6,19 @@ protocol NotificationRepository {
 }
 
 final class HTTPNotificationRepository: NotificationRepository {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
     func list() async throws -> [LokaNotification] {
-        let response = try await client.send(.get, "notifications", decode: NotificationListResponseDTO.self)
+        let response = try await client.send(Endpoints.notifications(), decode: NotificationListResponseDTO.self)
         return response.items
     }
 
     func markRead(id: String) async throws {
-        try await client.send(.patch, "notifications/\(id)/read")
+        try await client.send(Endpoints.markNotificationRead(id: id))
     }
 }
 

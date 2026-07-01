@@ -10,23 +10,15 @@ protocol VerificationService {
 }
 
 final class HTTPVerificationService: VerificationService {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
     func submitAadhaarXML(data: Data, shareCode: String) async throws -> VerificationResult {
-        let file = MultipartFile(
-            field: "xmlFile",
-            filename: "aadhaar.xml",
-            mimeType: "application/xml",
-            data: data
-        )
-        _ = try await client.upload(
-            "verification/upload-xml",
-            fields: ["shareCode": shareCode],
-            files: [file],
+        _ = try await client.send(
+            Endpoints.uploadVerificationXML(data: data, shareCode: shareCode),
             decode: MessageResponseDTO.self
         )
         return VerificationResult(verificationId: UUID().uuidString, isValid: true)

@@ -3,38 +3,48 @@ import SwiftUI
 struct IssueDetailView: View {
     let issueId: String
 
+    @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel = IssueDetailViewModel()
     @State private var showSupportConfirm = false
     @State private var showOpposeSheet = false
 
     var body: some View {
-        ScrollView {
+        Group {
             if let issue = viewModel.issue {
-                VStack(alignment: .leading, spacing: LokaSpacing.xl) {
-                    header(issue)
-                    section(title: "Problem") { Text(issue.description).font(LokaFont.body) }
-                    section(title: "Desired Outcome") { Text(issue.desiredOutcome).font(LokaFont.body) }
-                    evidenceSection(issue)
-                    participationSummary(issue)
-                    participationActions(issue)
-                    commentsSection
-                    relatedSection
-                }
-                .padding(LokaSpacing.lg)
+                loaded(issue)
             } else if viewModel.isLoading {
-                ProgressView().padding(LokaSpacing.xxl)
-            } else if let error = viewModel.errorMessage {
-                EmptyStateView(systemImage: "exclamationmark.triangle", title: "Could not load issue", message: error)
-                    .padding(LokaSpacing.lg)
+                loadingState
+            } else {
+                errorState
             }
         }
-        .background(LokaColor.background)
+        .background(LokaColor.base)
         .navigationTitle("Issue")
         .navigationBarTitleDisplayMode(.inline)
         .task { await viewModel.load(id: issueId) }
+    }
+
+    // MARK: - Loaded
+
+    private func loaded(_ issue: Issue) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: LokaSpacing.xl) {
+                hero(issue)
+                participationSummary(issue)
+                textSection(title: "The problem", icon: "exclamationmark.bubble.fill", text: issue.description)
+                textSection(title: "Desired outcome", icon: "target", text: issue.desiredOutcome)
+                evidenceSection(issue)
+                commentsSection
+                relatedSection
+            }
+            .padding(LokaSpacing.lg)
+            .padding(.bottom, LokaSpacing.xxl)
+        }
+        .scrollIndicators(.hidden)
+        .safeAreaInset(edge: .bottom) { actionBar }
         .alert("Support is permanent", isPresented: $showSupportConfirm) {
             Button("Cancel", role: .cancel) {}
-            Button("Support") { Task { await viewModel.support() } }
+            Button("Support") { Haptics.success(); Task { await viewModel.support() } }
         } message: {
             Text("Support actions cannot be reversed or changed later.")
         }
@@ -45,52 +55,78 @@ struct IssueDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func header(_ issue: Issue) -> some View {
-        VStack(alignment: .leading, spacing: LokaSpacing.sm) {
-            HStack {
-                StatusBadge(status: issue.status)
-                CategoryChip(category: issue.category)
+    private func hero(_ issue: Issue) -> some View {
+        VStack(alignment: .leading, spacing: LokaSpacing.md) {
+            HStack(spacing: LokaSpacing.sm) {
+                StatusPill(status: issue.status)
+                CategoryTag(category: issue.category)
                 Spacer()
             }
             Text(issue.title)
                 .font(LokaFont.headingLarge)
                 .foregroundStyle(LokaColor.textPrimary)
-            Label(issue.location.displayText, systemImage: "mappin.and.ellipse")
-                .font(LokaFont.caption)
-                .foregroundStyle(LokaColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: LokaSpacing.sm) {
+                LokaAvatar(name: issue.creatorDisplayName, size: LokaSize.avatarSmall, isVerified: true)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(issue.creatorDisplayName)
+                        .font(LokaFont.captionEmphasized)
+                        .foregroundStyle(LokaColor.textPrimary)
+                    HStack(spacing: 3) {
+                        Image(systemName: "mappin.and.ellipse").font(.system(size: 9))
+                        Text(issue.location.displayText)
+                        Text("·")
+                        Text(issue.createdAt.relativeString())
+                    }
+                    .font(LokaFont.caption)
+                    .foregroundStyle(LokaColor.textSecondary)
+                }
+            }
         }
     }
 
-    @ViewBuilder
-    private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+    private func participationSummary(_ issue: Issue) -> some View {
+        LokaCard {
+            VStack(alignment: .leading, spacing: LokaSpacing.md) {
+                Text("Community response")
+                    .font(LokaFont.headingSmall)
+                    .foregroundStyle(LokaColor.textPrimary)
+                ParticipationBar(supportCount: issue.supportCount, opposeCount: issue.opposeCount)
+            }
+        }
+    }
+
+    private func textSection(title: String, icon: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: LokaSpacing.sm) {
-            Text(title)
+            Label(title, systemImage: icon)
                 .font(LokaFont.headingSmall)
                 .foregroundStyle(LokaColor.textPrimary)
-            content()
+            Text(text)
+                .font(LokaFont.body)
                 .foregroundStyle(LokaColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder
     private func evidenceSection(_ issue: Issue) -> some View {
         VStack(alignment: .leading, spacing: LokaSpacing.sm) {
-            Text("Evidence")
+            Label("Evidence", systemImage: "photo.stack.fill")
                 .font(LokaFont.headingSmall)
                 .foregroundStyle(LokaColor.textPrimary)
             if issue.evidenceCount == 0 {
                 Text("No evidence uploaded.")
-                    .font(LokaFont.body)
+                    .font(LokaFont.callout)
                     .foregroundStyle(LokaColor.textSecondary)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: LokaSpacing.sm) {
                         ForEach(0..<issue.evidenceCount, id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: LokaCorner.sm)
-                                .fill(LokaColor.surface)
-                                .frame(width: 96, height: 96)
-                                .overlay(Image(systemName: "photo").foregroundStyle(LokaColor.textTertiary))
+                            RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous)
+                                .fill(LokaColor.surfaceElevated)
+                                .frame(width: 120, height: 120)
+                                .overlay(Image(systemName: "photo").font(.system(size: 28)).foregroundStyle(LokaColor.textTertiary))
                         }
                     }
                 }
@@ -99,103 +135,127 @@ struct IssueDetailView: View {
     }
 
     @ViewBuilder
-    private func participationSummary(_ issue: Issue) -> some View {
-        VStack(alignment: .leading, spacing: LokaSpacing.sm) {
-            Text("Participation")
-                .font(LokaFont.headingSmall)
-                .foregroundStyle(LokaColor.textPrimary)
-            HStack(spacing: LokaSpacing.xl) {
-                VStack(alignment: .leading) {
-                    Text("\(issue.supportCount)")
-                        .font(LokaFont.headingMedium)
-                        .foregroundStyle(LokaColor.civicGreen)
-                    Text("Support")
-                        .font(LokaFont.caption)
-                        .foregroundStyle(LokaColor.textSecondary)
-                }
-                VStack(alignment: .leading) {
-                    Text("\(issue.opposeCount)")
-                        .font(LokaFont.headingMedium)
-                        .foregroundStyle(LokaColor.warning)
-                    Text("Oppose")
-                        .font(LokaFont.caption)
-                        .foregroundStyle(LokaColor.textSecondary)
-                }
-                VStack(alignment: .leading) {
-                    Text("\(Int(issue.supportRatio * 100))%")
-                        .font(LokaFont.headingMedium)
-                        .foregroundStyle(LokaColor.accent)
-                    Text("Support ratio")
-                        .font(LokaFont.caption)
-                        .foregroundStyle(LokaColor.textSecondary)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func participationActions(_ issue: Issue) -> some View {
-        VStack(spacing: LokaSpacing.sm) {
-            if let participation = viewModel.participation {
-                Text(participation.type == .support ? "You have supported this issue." : "You have opposed this issue.")
-                    .font(LokaFont.bodyEmphasized)
-                    .foregroundStyle(LokaColor.textPrimary)
-                Text("Participation is permanent and cannot be changed.")
-                    .font(LokaFont.caption)
-                    .foregroundStyle(LokaColor.textSecondary)
-            } else {
-                PrimaryButton(title: "Support") { showSupportConfirm = true }
-                SecondaryButton(title: "Oppose with explanation") { showOpposeSheet = true }
-            }
-        }
-    }
-
-    @ViewBuilder
     private var commentsSection: some View {
-        VStack(alignment: .leading, spacing: LokaSpacing.sm) {
-            Text("Discussion")
+        VStack(alignment: .leading, spacing: LokaSpacing.md) {
+            Label("Discussion", systemImage: "bubble.left.and.bubble.right.fill")
                 .font(LokaFont.headingSmall)
                 .foregroundStyle(LokaColor.textPrimary)
             if viewModel.comments.isEmpty {
-                Text("No comments yet.")
-                    .font(LokaFont.body)
+                Text("No comments yet. Be the first to add context.")
+                    .font(LokaFont.callout)
                     .foregroundStyle(LokaColor.textSecondary)
             } else {
                 ForEach(viewModel.comments) { comment in
-                    VStack(alignment: .leading, spacing: LokaSpacing.xs) {
-                        Text(comment.citizenDisplayName)
-                            .font(LokaFont.bodyEmphasized)
-                            .foregroundStyle(LokaColor.textPrimary)
-                        Text(comment.text)
-                            .font(LokaFont.body)
-                            .foregroundStyle(LokaColor.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(LokaSpacing.md)
-                    .background(LokaColor.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: LokaCorner.sm))
+                    commentRow(comment)
                 }
             }
         }
+    }
+
+    private func commentRow(_ comment: LokaComment) -> some View {
+        HStack(alignment: .top, spacing: LokaSpacing.sm) {
+            LokaAvatar(name: comment.citizenDisplayName, size: LokaSize.avatarSmall)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: LokaSpacing.xs) {
+                    Text(comment.citizenDisplayName)
+                        .font(LokaFont.captionEmphasized)
+                        .foregroundStyle(LokaColor.textPrimary)
+                    Text(comment.createdAt.relativeString())
+                        .font(LokaFont.caption)
+                        .foregroundStyle(LokaColor.textTertiary)
+                }
+                Text(comment.text)
+                    .font(LokaFont.callout)
+                    .foregroundStyle(LokaColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(LokaSpacing.md)
+        .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 0.5))
     }
 
     @ViewBuilder
     private var relatedSection: some View {
         if !viewModel.related.isEmpty {
-            VStack(alignment: .leading, spacing: LokaSpacing.sm) {
-                Text("Related issues")
+            VStack(alignment: .leading, spacing: LokaSpacing.md) {
+                Label("Related issues", systemImage: "square.stack.3d.up.fill")
                     .font(LokaFont.headingSmall)
                     .foregroundStyle(LokaColor.textPrimary)
                 ForEach(viewModel.related) { related in
                     NavigationLink(value: IssueRoute.detail(id: related.id)) {
-                        IssueCard(issue: related)
+                        IssueCompactRow(issue: related)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressableButtonStyle())
                 }
             }
         }
     }
+
+    // MARK: - Sticky action bar
+
+    @ViewBuilder
+    private var actionBar: some View {
+        if let participation = viewModel.participation {
+            participatedBanner(participation)
+        } else if viewModel.issue != nil {
+            HStack(spacing: LokaSpacing.md) {
+                LokaButton(title: "Support", systemImage: "hand.thumbsup.fill", style: .primary) {
+                    showSupportConfirm = true
+                }
+                LokaButton(title: "Oppose", systemImage: "hand.thumbsdown.fill", style: .secondary) {
+                    showOpposeSheet = true
+                }
+            }
+            .padding(LokaSpacing.lg)
+            .background(.ultraThinMaterial)
+            .overlay(alignment: .top) { Divider().overlay(LokaColor.divider) }
+        }
+    }
+
+    private func participatedBanner(_ participation: ParticipationRecord) -> some View {
+        let supported = participation.type == .support
+        return HStack(spacing: LokaSpacing.sm) {
+            Image(systemName: supported ? "checkmark.seal.fill" : "hand.thumbsdown.fill")
+                .foregroundStyle(supported ? LokaColor.support : LokaColor.oppose)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(supported ? "You supported this issue" : "You opposed this issue")
+                    .font(LokaFont.calloutEmphasized)
+                    .foregroundStyle(LokaColor.textPrimary)
+                Text("Participation is permanent and cannot be changed.")
+                    .font(LokaFont.caption)
+                    .foregroundStyle(LokaColor.textSecondary)
+            }
+            Spacer()
+        }
+        .padding(LokaSpacing.lg)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) { Divider().overlay(LokaColor.divider) }
+    }
+
+    // MARK: - Loading / error
+
+    private var loadingState: some View {
+        VStack(spacing: LokaSpacing.lg) {
+            ForEach(0..<3, id: \.self) { _ in IssueCardSkeleton() }
+        }
+        .padding(LokaSpacing.lg)
+    }
+
+    private var errorState: some View {
+        EmptyStateView(
+            systemImage: "exclamationmark.triangle.fill",
+            title: "Couldn't load issue",
+            message: viewModel.errorMessage ?? "Please try again.",
+            tint: LokaColor.danger,
+            actionTitle: "Retry"
+        ) { Task { await viewModel.load(id: issueId) } }
+        .padding(LokaSpacing.lg)
+    }
 }
+
+// MARK: - Oppose sheet
 
 private struct OpposeSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -203,26 +263,48 @@ private struct OpposeSheet: View {
     @State private var showConfirm = false
     let onSubmit: (String) -> Void
 
+    private let minimum = 30
+    private var isValid: Bool { explanation.count >= minimum }
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: LokaSpacing.lg) {
-                Text("Opposition requires a constructive explanation. This action is permanent.")
-                    .font(LokaFont.body)
-                    .foregroundStyle(LokaColor.textSecondary)
-                TextEditor(text: $explanation)
-                    .frame(minHeight: 160)
-                    .padding(LokaSpacing.sm)
-                    .background(LokaColor.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: LokaCorner.sm))
-                Text("\(explanation.count)/30 minimum")
-                    .font(LokaFont.caption)
-                    .foregroundStyle(explanation.count >= 30 ? LokaColor.civicGreen : LokaColor.textTertiary)
-                Spacer()
-                PrimaryButton(title: "Continue") {
-                    if explanation.count >= 30 { showConfirm = true }
+            ScrollView {
+                VStack(alignment: .leading, spacing: LokaSpacing.lg) {
+                    Text("Opposition requires a constructive explanation. This action is permanent.")
+                        .font(LokaFont.callout)
+                        .foregroundStyle(LokaColor.textSecondary)
+
+                    ZStack(alignment: .topLeading) {
+                        if explanation.isEmpty {
+                            Text("Explain your concern and what you'd change…")
+                                .font(LokaFont.body)
+                                .foregroundStyle(LokaColor.textTertiary)
+                                .padding(LokaSpacing.md)
+                        }
+                        TextEditor(text: $explanation)
+                            .font(LokaFont.body)
+                            .scrollContentBackground(.hidden)
+                            .frame(minHeight: 180)
+                            .padding(LokaSpacing.sm)
+                    }
+                    .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 1))
+
+                    HStack {
+                        Spacer()
+                        Text("\(explanation.count)/\(minimum) minimum")
+                            .font(LokaFont.caption)
+                            .foregroundStyle(isValid ? LokaColor.support : LokaColor.textTertiary)
+                    }
+
+                    LokaButton(title: "Continue", style: .primary) {
+                        if isValid { Haptics.warning(); showConfirm = true }
+                    }
+                    .opacity(isValid ? 1 : 0.5)
                 }
+                .padding(LokaSpacing.lg)
             }
-            .padding(LokaSpacing.lg)
+            .background(LokaColor.base)
             .navigationTitle("Oppose")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

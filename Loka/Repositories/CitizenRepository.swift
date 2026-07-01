@@ -6,22 +6,19 @@ protocol CitizenRepository {
 }
 
 final class HTTPCitizenRepository: CitizenRepository {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
     func fetchMe() async throws -> Citizen {
-        let dto = try await client.send(.get, "profile/me", decode: CitizenMeDTO.self)
+        let dto = try await client.send(Endpoints.me(), decode: CitizenMeDTO.self)
         return dto.toModel()
     }
 
     func updateDistricts(home: District?, livingIn: District?) async throws -> Citizen {
-        var query: [URLQueryItem] = []
-        if let home { query.append(URLQueryItem(name: "homeDistrictId", value: home.id)) }
-        if let livingIn { query.append(URLQueryItem(name: "livingInDistrictId", value: livingIn.id)) }
-        try await client.send(.patch, "verification/districts", query: query, body: nil)
+        try await client.send(Endpoints.updateDistricts(homeDistrictId: home?.id, livingInDistrictId: livingIn?.id))
         return try await fetchMe()
     }
 }

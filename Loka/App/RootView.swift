@@ -6,6 +6,8 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            LokaColor.base.ignoresSafeArea()
+
             if showSplash {
                 SplashView()
                     .transition(.opacity)
@@ -14,24 +16,20 @@ struct RootView: View {
                 case .anonymous:
                     NavigationStack {
                         AuthView(onComplete: {
-                            Task {
-                                await session.bootstrap()
-                            }
+                            Task { await session.bootstrap() }
                         })
                     }
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .scale(scale: 1.02)))
                 case .authenticated:
                     MainTabView()
-                        .transition(.opacity)
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
             }
         }
         .task {
-            try? await Task.sleep(nanoseconds: 900_000_000)
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
             await session.bootstrap()
-            withAnimation(.easeOut(duration: 0.25)) {
-                showSplash = false
-            }
+            withAnimation(LokaAnimation.smooth) { showSplash = false }
         }
     }
 }

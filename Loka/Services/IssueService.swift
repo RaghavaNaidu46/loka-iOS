@@ -16,9 +16,9 @@ struct IssueDraft {
 }
 
 final class HTTPIssueService: IssueService {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
@@ -26,43 +26,26 @@ final class HTTPIssueService: IssueService {
         guard let district = draft.district else {
             throw APIError.server(400, "Please select a district")
         }
-        struct LocationBody: Encodable {
-            let area: String?
-            let city: String
-            let districtId: String
-        }
-        struct CreateBody: Encodable {
-            let title: String
-            let description: String
-            let desiredOutcome: String
-            let category: IssueCategory
-            let location: LocationBody
-        }
-        let body = CreateBody(
-            title: draft.title,
-            description: draft.description,
-            desiredOutcome: draft.desiredOutcome,
-            category: draft.category,
-            location: LocationBody(
+        let created = try await client.send(
+            Endpoints.createIssue(
+                title: draft.title,
+                description: draft.description,
+                desiredOutcome: draft.desiredOutcome,
+                category: draft.category,
                 area: draft.area.isEmpty ? nil : draft.area,
                 city: draft.city,
                 districtId: district.id
-            )
+            ),
+            decode: IssueDTO.self
         )
-        let created = try await client.send(.post, "issues", body: body, decode: IssueDTO.self)
-        try await client.send(.post, "issues/\(created.id)/submit")
-        let detail = try await client.send(.get, "issues/\(created.id)", decode: IssueDTO.self)
+        try await client.send(Endpoints.submitIssue(id: created.id))
+        let detail = try await client.send(Endpoints.issueDetail(id: created.id), decode: IssueDTO.self)
         return detail.toModel()
     }
 
     func detectDuplicates(title: String, districtId: String) async throws -> [Issue] {
-        let query = [
-            URLQueryItem(name: "query", value: title),
-            URLQueryItem(name: "districtId", value: districtId)
-        ]
         let response = try await client.send(
-            .get, "search/issues",
-            query: query, body: nil,
+            Endpoints.searchIssues(query: title, districtId: districtId, category: nil),
             decode: IssueListResponseDTO.self
         )
         return response.items.map { $0.toModel() }

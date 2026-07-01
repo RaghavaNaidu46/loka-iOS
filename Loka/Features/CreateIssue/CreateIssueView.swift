@@ -6,118 +6,241 @@ struct CreateIssueView: View {
 
     var body: some View {
         NavigationStack {
-            if session.citizenState != .verified {
-                gatedView
-            } else if let submitted = viewModel.submittedIssue {
-                submittedView(submitted)
-            } else {
-                formView
+            Group {
+                if session.citizenState != .verified {
+                    gatedView
+                } else if let submitted = viewModel.submittedIssue {
+                    submittedView(submitted)
+                } else {
+                    formView
+                }
             }
+            .background(LokaColor.base)
+            .navigationTitle("Raise an issue")
+            .navigationBarTitleDisplayMode(.large)
         }
     }
+
+    // MARK: - Gated
 
     private var gatedView: some View {
-        VStack(spacing: LokaSpacing.lg) {
-            Image(systemName: "lock.shield")
-                .font(.system(size: 48))
-                .foregroundStyle(LokaColor.accent)
-            Text("Verification required")
-                .font(LokaFont.headingMedium)
-            Text("Only verified citizens can create civic issues. Verify with Aadhaar Offline XML to participate.")
-                .font(LokaFont.body)
-                .foregroundStyle(LokaColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, LokaSpacing.xl)
-            NavigationLink {
-                BecomeCitizenView()
-            } label: {
-                Text("Become a Citizen")
-                    .font(LokaFont.bodyEmphasized)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(LokaColor.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: LokaCorner.md))
-                    .padding(.horizontal, LokaSpacing.lg)
+        ScrollView {
+            VStack(spacing: LokaSpacing.lg) {
+                EmptyStateView(
+                    systemImage: "lock.shield.fill",
+                    title: "Verification required",
+                    message: "Only verified citizens can raise civic issues. Verify once with Aadhaar Offline XML to participate."
+                )
+                NavigationLink {
+                    BecomeCitizenView()
+                } label: {
+                    Label("Become a Citizen", systemImage: "checkmark.seal.fill")
+                        .font(LokaFont.calloutEmphasized)
+                        .foregroundStyle(LokaColor.onBrand)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: LokaSize.controlHeight)
+                        .background(LokaColor.brandGradient, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+                }
+                .buttonStyle(PressableButtonStyle())
+                .padding(.horizontal, LokaSpacing.lg)
             }
-            Spacer()
+            .padding(.top, LokaSpacing.xxl)
+            .padding(.bottom, LokaSize.tabBarClearance)
         }
-        .padding(.top, LokaSpacing.xxl)
-        .navigationTitle("Create Issue")
-        .navigationBarTitleDisplayMode(.inline)
     }
+
+    // MARK: - Success
 
     private func submittedView(_ issue: Issue) -> some View {
-        VStack(spacing: LokaSpacing.lg) {
-            Image(systemName: "checkmark.seal")
-                .font(.system(size: 48))
-                .foregroundStyle(LokaColor.civicGreen)
-            Text("Submitted for review")
-                .font(LokaFont.headingMedium)
-            Text("Your issue \"\(issue.title)\" was submitted. A moderator will review it shortly.")
-                .font(LokaFont.body)
-                .foregroundStyle(LokaColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, LokaSpacing.xl)
-            PrimaryButton(title: "Submit another") {
-                viewModel.submittedIssue = nil
-                viewModel.draft.title = ""
-                viewModel.draft.description = ""
-                viewModel.draft.desiredOutcome = ""
+        ScrollView {
+            VStack(spacing: LokaSpacing.lg) {
+                ZStack {
+                    Circle().fill(LokaColor.support.opacity(0.14)).frame(width: 96, height: 96)
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(LokaColor.support)
+                }
+                Text("Submitted for review")
+                    .font(LokaFont.headingLarge)
+                    .foregroundStyle(LokaColor.textPrimary)
+                Text("Your issue \u{201C}\(issue.title)\u{201D} was submitted. A moderator will review it shortly.")
+                    .font(LokaFont.callout)
+                    .foregroundStyle(LokaColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, LokaSpacing.xl)
+                LokaButton(title: "Raise another", systemImage: "plus", style: .secondary, fullWidth: false) {
+                    resetDraft()
+                }
             }
-            .padding(.horizontal, LokaSpacing.lg)
-            Spacer()
+            .frame(maxWidth: .infinity)
+            .padding(.top, LokaSpacing.xxl)
+            .padding(.bottom, LokaSize.tabBarClearance)
         }
-        .padding(.top, LokaSpacing.xxl)
-        .navigationTitle("Create Issue")
+        .onAppear { Haptics.success() }
     }
 
+    private func resetDraft() {
+        viewModel.submittedIssue = nil
+        viewModel.draft.title = ""
+        viewModel.draft.description = ""
+        viewModel.draft.desiredOutcome = ""
+    }
+
+    // MARK: - Form
+
     private var formView: some View {
-        Form {
-            Section("Title") {
-                TextField("Short, specific description", text: $viewModel.draft.title, axis: .vertical)
-                    .lineLimit(2)
-            }
-            Section("Category") {
-                Picker("Category", selection: $viewModel.draft.category) {
-                    ForEach(IssueCategory.allCases) { Text($0.displayName).tag($0) }
-                }
-            }
-            Section("Location") {
-                Picker("District", selection: $viewModel.draft.district) {
-                    ForEach(LokaRegion.sampleDistricts) { Text($0.name).tag(Optional($0)) }
-                }
-                TextField("City", text: $viewModel.draft.city)
-                TextField("Area / ward (optional)", text: $viewModel.draft.area)
-            }
-            Section("Problem description") {
-                TextField("What is happening?", text: $viewModel.draft.description, axis: .vertical)
-                    .lineLimit(4...8)
-            }
-            Section("Desired outcome") {
-                TextField("What resolution do you expect?", text: $viewModel.draft.desiredOutcome, axis: .vertical)
-                    .lineLimit(3...6)
-            }
-            if !viewModel.duplicates.isEmpty {
-                Section("Possible duplicates") {
-                    ForEach(viewModel.duplicates) { duplicate in
-                        VStack(alignment: .leading) {
-                            Text(duplicate.title).font(LokaFont.bodyEmphasized)
-                            Text(duplicate.location.displayText).font(LokaFont.caption).foregroundStyle(LokaColor.textSecondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: LokaSpacing.xl) {
+                fieldGroup(title: "Title", hint: "Short, specific description") {
+                    LokaTextField(placeholder: "e.g. Streetlights out on MG Road", text: $viewModel.draft.title, autocapitalization: .sentences)
+                        .onChange(of: viewModel.draft.title) { _, _ in
+                            Task { await viewModel.detectDuplicates() }
                         }
+                }
+
+                duplicatesGroup
+
+                fieldGroup(title: "Category") { categoryGrid }
+
+                fieldGroup(title: "Location") {
+                    VStack(spacing: LokaSpacing.sm) {
+                        districtMenu
+                        LokaTextField(placeholder: "City", text: $viewModel.draft.city, systemImage: "building.2", autocapitalization: .words)
+                        LokaTextField(placeholder: "Area / ward (optional)", text: $viewModel.draft.area, systemImage: "map", autocapitalization: .words)
                     }
                 }
-            }
-            Section {
-                PrimaryButton(title: "Submit for review", isLoading: viewModel.isSubmitting) {
+
+                fieldGroup(title: "Problem description", hint: "Minimum 20 characters") {
+                    editor(text: $viewModel.draft.description, placeholder: "What is happening, and who does it affect?", minHeight: 120)
+                }
+
+                fieldGroup(title: "Desired outcome", hint: "Minimum 10 characters") {
+                    editor(text: $viewModel.draft.desiredOutcome, placeholder: "What resolution do you expect?", minHeight: 90)
+                }
+
+                if let error = viewModel.errorMessage {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(LokaFont.caption)
+                        .foregroundStyle(LokaColor.danger)
+                }
+
+                LokaButton(title: "Submit for review", systemImage: "paperplane.fill", style: .primary, isLoading: viewModel.isSubmitting) {
                     Task { await viewModel.submit() }
                 }
+                .opacity(viewModel.canSubmit ? 1 : 0.5)
                 .disabled(!viewModel.canSubmit)
             }
+            .padding(LokaSpacing.lg)
+            .padding(.bottom, LokaSize.tabBarClearance)
         }
-        .navigationTitle("Create Issue")
-        .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: viewModel.draft.title) { _, _ in
-            Task { await viewModel.detectDuplicates() }
+        .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    // MARK: - Form pieces
+
+    private func fieldGroup<Content: View>(title: String, hint: String? = nil, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: LokaSpacing.sm) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(LokaFont.captionEmphasized)
+                    .foregroundStyle(LokaColor.textPrimary)
+                Spacer()
+                if let hint {
+                    Text(hint)
+                        .font(LokaFont.caption)
+                        .foregroundStyle(LokaColor.textTertiary)
+                }
+            }
+            content()
         }
     }
+
+    private var categoryGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: LokaSpacing.sm)], spacing: LokaSpacing.sm) {
+            ForEach(IssueCategory.allCases) { category in
+                let selected = viewModel.draft.category == category
+                Button {
+                    Haptics.selection()
+                    withAnimation(LokaAnimation.snappy) { viewModel.draft.category = category }
+                } label: {
+                    HStack(spacing: LokaSpacing.xs) {
+                        Image(systemName: category.systemImage)
+                        Text(category.displayName)
+                            .font(LokaFont.caption)
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(selected ? category.tint : LokaColor.textSecondary)
+                    .padding(.horizontal, LokaSpacing.md)
+                    .frame(height: 44)
+                    .background(selected ? category.tint.opacity(0.14) : LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous)
+                            .strokeBorder(selected ? category.tint : LokaColor.border, lineWidth: selected ? 1.5 : 1)
+                    )
+                }
+                .buttonStyle(PressableButtonStyle(scale: 0.95))
+            }
+        }
+    }
+
+    private var districtMenu: some View {
+        Menu {
+            ForEach(LokaRegion.sampleDistricts) { district in
+                Button("\(district.name), \(district.state)") { viewModel.draft.district = district }
+            }
+        } label: {
+            HStack(spacing: LokaSpacing.sm) {
+                Image(systemName: "mappin.and.ellipse").foregroundStyle(LokaColor.textTertiary)
+                Text(viewModel.draft.district?.name ?? "Select district")
+                    .font(LokaFont.body)
+                    .foregroundStyle(viewModel.draft.district == nil ? LokaColor.textTertiary : LokaColor.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 12)).foregroundStyle(LokaColor.textTertiary)
+            }
+            .padding(.horizontal, LokaSpacing.md)
+            .frame(height: LokaSize.controlHeight)
+            .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 1))
+        }
+    }
+
+    private func editor(text: Binding<String>, placeholder: String, minHeight: CGFloat) -> some View {
+        ZStack(alignment: .topLeading) {
+            if text.wrappedValue.isEmpty {
+                Text(placeholder)
+                    .font(LokaFont.body)
+                    .foregroundStyle(LokaColor.textTertiary)
+                    .padding(LokaSpacing.md)
+            }
+            TextEditor(text: text)
+                .font(LokaFont.body)
+                .scrollContentBackground(.hidden)
+                .frame(minHeight: minHeight)
+                .padding(LokaSpacing.sm)
+        }
+        .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var duplicatesGroup: some View {
+        if !viewModel.duplicates.isEmpty {
+            VStack(alignment: .leading, spacing: LokaSpacing.sm) {
+                Label("Possible duplicates", systemImage: "doc.on.doc.fill")
+                    .font(LokaFont.captionEmphasized)
+                    .foregroundStyle(LokaColor.oppose)
+                ForEach(viewModel.duplicates) { duplicate in
+                    IssueCompactRow(issue: duplicate)
+                }
+            }
+            .padding(LokaSpacing.md)
+            .background(LokaColor.oppose.opacity(0.08), in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+        }
+    }
+}
+
+#Preview {
+    CreateIssueView()
+        .environmentObject(AppSessionManager())
 }

@@ -6,25 +6,23 @@ protocol CommentRepository {
 }
 
 final class HTTPCommentRepository: CommentRepository {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
     func list(issueId: String) async throws -> [LokaComment] {
         let response = try await client.send(
-            .get, "issues/\(issueId)/comments",
+            Endpoints.comments(issueId: issueId),
             decode: CommentListResponseDTO.self
         )
         return response.items.map { $0.toModel() }
     }
 
     func add(issueId: String, text: String) async throws -> LokaComment {
-        struct Body: Encodable { let text: String }
         let dto = try await client.send(
-            .post, "issues/\(issueId)/comments",
-            body: Body(text: text),
+            Endpoints.addComment(issueId: issueId, text: text),
             decode: CommentDTO.self
         )
         return dto.toModel()

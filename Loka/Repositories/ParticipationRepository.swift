@@ -7,15 +7,14 @@ protocol ParticipationRepository {
 }
 
 final class HTTPParticipationRepository: ParticipationRepository {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
     func support(issueId: String) async throws -> ParticipationRecord {
-        struct Body: Encodable { let confirmed: Bool }
-        try await client.send(.post, "issues/\(issueId)/support", body: Body(confirmed: true))
+        try await client.send(Endpoints.support(issueId: issueId))
         return ParticipationRecord(
             id: UUID().uuidString,
             citizenId: "",
@@ -27,8 +26,7 @@ final class HTTPParticipationRepository: ParticipationRepository {
     }
 
     func oppose(issueId: String, explanation: String) async throws -> ParticipationRecord {
-        struct Body: Encodable { let explanation: String; let confirmed: Bool }
-        try await client.send(.post, "issues/\(issueId)/oppose", body: Body(explanation: explanation, confirmed: true))
+        try await client.send(Endpoints.oppose(issueId: issueId, explanation: explanation))
         return ParticipationRecord(
             id: UUID().uuidString,
             citizenId: "",
@@ -42,7 +40,7 @@ final class HTTPParticipationRepository: ParticipationRepository {
     func status(forIssue id: String) async throws -> ParticipationRecord? {
         do {
             let dto = try await client.send(
-                .get, "issues/\(id)/participation/status",
+                Endpoints.participationStatus(issueId: id),
                 decode: ParticipationStatusDTO.self
             )
             guard dto.hasParticipated else { return nil }

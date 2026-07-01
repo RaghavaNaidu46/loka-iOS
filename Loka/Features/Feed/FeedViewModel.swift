@@ -15,6 +15,26 @@ final class FeedViewModel: ObservableObject {
         self.repository = repository
     }
 
+    /// A merged, de-duplicated view across all sections, newest first.
+    /// Presentation-only convenience for the unified feed — does not touch networking.
+    var all: [Issue] {
+        var seen = Set<String>()
+        return (nearby + fresh + priority + resolved)
+            .filter { seen.insert($0.id).inserted }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    /// Returns the issues that back a given feed filter.
+    func issues(for filter: FeedFilter) -> [Issue] {
+        switch filter {
+        case .all: return all
+        case .nearby: return nearby
+        case .fresh: return fresh
+        case .priority: return priority
+        case .resolved: return resolved
+        }
+    }
+
     func load() async {
         isLoading = true
         errorMessage = nil

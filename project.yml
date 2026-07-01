@@ -9,10 +9,12 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.10"
-    DEVELOPMENT_TEAM: ""
-    CODE_SIGN_STYLE: Automatic
-    CODE_SIGNING_REQUIRED: NO
-    CODE_SIGNING_ALLOWED: NO
+    # Manual signing against the com.rbchronicles* wildcard profile (team YZFSC6CZ7H).
+    DEVELOPMENT_TEAM: YZFSC6CZ7H
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "Apple Development"
+    CODE_SIGNING_REQUIRED: YES
+    CODE_SIGNING_ALLOWED: YES
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     GENERATE_INFOPLIST_FILE: NO
     MARKETING_VERSION: "0.1.0"
@@ -37,8 +39,10 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true
+        # Dev/staging backend is served over plain HTTP (16.112.4.127:8000).
+        # TODO: remove once the backend is behind HTTPS.
         NSAppTransportSecurity:
-          NSAllowsLocalNetworking: true
+          NSAllowsArbitraryLoads: true
         UILaunchScreen:
           UIColorName: ""
         UIApplicationSceneManifest:
@@ -52,7 +56,8 @@ targets:
           - UIInterfaceOrientationLandscapeRight
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.loka.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.rbchronicles.loka.app
+        PROVISIONING_PROFILE_SPECIFIER: Wildcard_ios
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

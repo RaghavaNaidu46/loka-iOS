@@ -11,53 +11,48 @@ protocol IssueRepository {
 }
 
 final class HTTPIssueRepository: IssueRepository {
-    private let client: APIClient
+    private let client: any APIClient
 
-    init(client: APIClient = ServiceLocator.shared.client) {
+    init(client: any APIClient = ServiceLocator.shared.client) {
         self.client = client
     }
 
     func feedNearby() async throws -> [Issue] {
-        try await fetchFeed("feed/nearby")
+        try await fetchFeed(Endpoints.feedNearby())
     }
 
     func feedNew() async throws -> [Issue] {
-        try await fetchFeed("feed/new")
+        try await fetchFeed(Endpoints.feedNew())
     }
 
     func feedCommunityPriority() async throws -> [Issue] {
-        try await fetchFeed("feed/priority")
+        try await fetchFeed(Endpoints.feedPriority())
     }
 
     func feedResolved() async throws -> [Issue] {
-        try await fetchFeed("feed/resolved")
+        try await fetchFeed(Endpoints.feedResolved())
     }
 
     func detail(id: String) async throws -> Issue {
-        let dto = try await client.send(.get, "issues/\(id)", decode: IssueDTO.self)
+        let dto = try await client.send(Endpoints.issueDetail(id: id), decode: IssueDTO.self)
         return dto.toModel()
     }
 
     func relatedIssues(to id: String) async throws -> [Issue] {
-        let response = try await client.send(.get, "issues/\(id)/related", decode: IssueListResponseDTO.self)
+        let response = try await client.send(Endpoints.relatedIssues(id: id), decode: IssueListResponseDTO.self)
         return response.items.map { $0.toModel() }
     }
 
     func search(query: String, district: District?, category: IssueCategory?) async throws -> [Issue] {
-        var items: [URLQueryItem] = []
-        if !query.isEmpty { items.append(URLQueryItem(name: "query", value: query)) }
-        if let district { items.append(URLQueryItem(name: "districtId", value: district.id)) }
-        if let category { items.append(URLQueryItem(name: "category", value: category.rawValue)) }
         let response = try await client.send(
-            .get, "search/issues",
-            query: items, body: nil,
+            Endpoints.searchIssues(query: query, districtId: district?.id, category: category?.rawValue),
             decode: IssueListResponseDTO.self
         )
         return response.items.map { $0.toModel() }
     }
 
-    private func fetchFeed(_ path: String) async throws -> [Issue] {
-        let response = try await client.send(.get, path, decode: IssueListResponseDTO.self)
+    private func fetchFeed(_ request: APIRequest) async throws -> [Issue] {
+        let response = try await client.send(request, decode: IssueListResponseDTO.self)
         return response.items.map { $0.toModel() }
     }
 }
