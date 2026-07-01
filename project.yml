@@ -44,7 +44,7 @@ targets:
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
         UILaunchScreen:
-          UIColorName: ""
+          UIColorName: "LaunchBackground"
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:

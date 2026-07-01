@@ -8,13 +8,16 @@ struct CreateIssueView: View {
         NavigationStack {
             Group {
                 if session.citizenState != .verified {
-                    gatedView
+                    gatedView.transition(.opacity)
                 } else if let submitted = viewModel.submittedIssue {
                     submittedView(submitted)
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
                 } else {
-                    formView
+                    formView.transition(.opacity)
                 }
             }
+            .animation(LokaAnimation.smooth, value: viewModel.submittedIssue?.id)
+            .animation(LokaAnimation.smooth, value: session.citizenState)
             .background(LokaColor.base)
             .navigationTitle("Raise an issue")
             .navigationBarTitleDisplayMode(.large)
@@ -92,7 +95,7 @@ struct CreateIssueView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: LokaSpacing.xl) {
                 fieldGroup(title: "Title", hint: "Short, specific description") {
-                    LokaTextField(placeholder: "e.g. Streetlights out on MG Road", text: $viewModel.draft.title, autocapitalization: .sentences)
+                    LokaTextField(placeholder: "e.g. Streetlights out on MG Road", text: $viewModel.draft.title, autocapitalization: .sentences, error: viewModel.titleError)
                         .onChange(of: viewModel.draft.title) { _, _ in
                             Task { await viewModel.detectDuplicates() }
                         }
@@ -104,18 +107,22 @@ struct CreateIssueView: View {
 
                 fieldGroup(title: "Location") {
                     VStack(spacing: LokaSpacing.sm) {
-                        districtMenu
+                        VStack(alignment: .leading, spacing: LokaSpacing.xs) {
+                            districtMenu
+                            FieldError(message: viewModel.districtError)
+                        }
+                        .animation(LokaAnimation.snappy, value: viewModel.districtError)
                         LokaTextField(placeholder: "City", text: $viewModel.draft.city, systemImage: "building.2", autocapitalization: .words)
                         LokaTextField(placeholder: "Area / ward (optional)", text: $viewModel.draft.area, systemImage: "map", autocapitalization: .words)
                     }
                 }
 
                 fieldGroup(title: "Problem description", hint: "Minimum 20 characters") {
-                    editor(text: $viewModel.draft.description, placeholder: "What is happening, and who does it affect?", minHeight: 120)
+                    editor(text: $viewModel.draft.description, placeholder: "What is happening, and who does it affect?", minHeight: 120, error: viewModel.descriptionError)
                 }
 
                 fieldGroup(title: "Desired outcome", hint: "Minimum 10 characters") {
-                    editor(text: $viewModel.draft.desiredOutcome, placeholder: "What resolution do you expect?", minHeight: 90)
+                    editor(text: $viewModel.draft.desiredOutcome, placeholder: "What resolution do you expect?", minHeight: 90, error: viewModel.outcomeError)
                 }
 
                 if let error = viewModel.errorMessage {
@@ -127,8 +134,6 @@ struct CreateIssueView: View {
                 LokaButton(title: "Submit for review", systemImage: "paperplane.fill", style: .primary, isLoading: viewModel.isSubmitting) {
                     Task { await viewModel.submit() }
                 }
-                .opacity(viewModel.canSubmit ? 1 : 0.5)
-                .disabled(!viewModel.canSubmit)
             }
             .padding(LokaSpacing.lg)
             .padding(.bottom, LokaSize.tabBarClearance)
@@ -205,22 +210,29 @@ struct CreateIssueView: View {
         }
     }
 
-    private func editor(text: Binding<String>, placeholder: String, minHeight: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
-            if text.wrappedValue.isEmpty {
-                Text(placeholder)
+    private func editor(text: Binding<String>, placeholder: String, minHeight: CGFloat, error: String? = nil) -> some View {
+        VStack(alignment: .leading, spacing: LokaSpacing.xs) {
+            ZStack(alignment: .topLeading) {
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .font(LokaFont.body)
+                        .foregroundStyle(LokaColor.textTertiary)
+                        .padding(LokaSpacing.md)
+                }
+                TextEditor(text: text)
                     .font(LokaFont.body)
-                    .foregroundStyle(LokaColor.textTertiary)
-                    .padding(LokaSpacing.md)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: minHeight)
+                    .padding(LokaSpacing.sm)
             }
-            TextEditor(text: text)
-                .font(LokaFont.body)
-                .scrollContentBackground(.hidden)
-                .frame(minHeight: minHeight)
-                .padding(LokaSpacing.sm)
+            .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous)
+                    .strokeBorder(error != nil ? LokaColor.danger : LokaColor.border, lineWidth: error != nil ? 1.5 : 1)
+            )
+            FieldError(message: error)
         }
-        .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 1))
+        .animation(LokaAnimation.snappy, value: error)
     }
 
     @ViewBuilder

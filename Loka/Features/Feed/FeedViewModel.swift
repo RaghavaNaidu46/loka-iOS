@@ -6,6 +6,9 @@ final class FeedViewModel: ObservableObject {
     @Published var fresh: [Issue] = []
     @Published var priority: [Issue] = []
     @Published var resolved: [Issue] = []
+    /// The merged "For You" list, computed once per load (not per render) so the
+    /// dedupe + sort cost doesn't repeat on every SwiftUI update as data grows.
+    @Published private(set) var merged: [Issue] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
@@ -15,24 +18,24 @@ final class FeedViewModel: ObservableObject {
         self.repository = repository
     }
 
-    /// A merged, de-duplicated view across all sections, newest first.
-    /// Presentation-only convenience for the unified feed — does not touch networking.
-    var all: [Issue] {
-        var seen = Set<String>()
-        return (nearby + fresh + priority + resolved)
-            .filter { seen.insert($0.id).inserted }
-            .sorted { $0.updatedAt > $1.updatedAt }
-    }
-
     /// Returns the issues that back a given feed filter.
     func issues(for filter: FeedFilter) -> [Issue] {
         switch filter {
-        case .all: return all
+        case .all: return merged
         case .nearby: return nearby
         case .fresh: return fresh
         case .priority: return priority
         case .resolved: return resolved
         }
+    }
+
+    /// Recompute the merged, de-duplicated "For You" list (newest first). Called
+    /// once after a load rather than on every access.
+    private func rebuildMerged() {
+        var seen = Set<String>()
+        merged = (nearby + fresh + priority + resolved)
+            .filter { seen.insert($0.id).inserted }
+            .sorted { $0.updatedAt > $1.updatedAt }
     }
 
     func load() async {
@@ -47,6 +50,7 @@ final class FeedViewModel: ObservableObject {
             fresh = try await freshTask
             priority = try await priorityTask
             resolved = try await resolvedTask
+            rebuildMerged()
         } catch {
             errorMessage = error.localizedDescription
         }

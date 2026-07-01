@@ -88,14 +88,9 @@ struct BecomeCitizenView: View {
     private var shareCodeStep: some View {
         VStack(alignment: .leading, spacing: LokaSpacing.lg) {
             stepTitle("Enter share code", "The share code is the password you set while downloading the offline XML.")
-            LokaTextField(placeholder: "Share code", text: $viewModel.shareCode, systemImage: "key.fill")
-            if let error = viewModel.errorMessage {
-                Label(error, systemImage: "exclamationmark.circle.fill")
-                    .font(LokaFont.caption).foregroundStyle(LokaColor.danger)
-            }
+            LokaTextField(placeholder: "Share code", text: $viewModel.shareCode, systemImage: "key.fill", error: viewModel.shareCodeError ?? viewModel.errorMessage)
             LokaButton(title: "Verify", isLoading: viewModel.isLoading) {
-                viewModel.step = .processing
-                Task { await viewModel.submitVerification() }
+                Task { await viewModel.startVerification() }
             }
         }
     }

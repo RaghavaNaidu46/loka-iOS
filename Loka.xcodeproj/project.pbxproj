@@ -62,6 +62,7 @@
 		A6DA2A97E69A46725059ED15 /* CategoryTag.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2705FC6B5B0CB87BB5CB922 /* CategoryTag.swift */; };
 		AADA93B605049C55EAE88B65 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8F0252725CA75C471FC9DE8E /* Assets.xcassets */; };
 		AD847840458907A730979C38 /* VerificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5784C047D07AF804B7457AA8 /* VerificationService.swift */; };
+		B0C9AA7259E89672801C1A19 /* FieldError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F19430E270C9FE43CCB065 /* FieldError.swift */; };
 		BE6DF648106FBA90D403E12E /* CreateIssueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAF866A170A7F8FBE4002CCC /* CreateIssueView.swift */; };
 		C33629DB2D48BDF8BAB7AAFF /* CommentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78EFECF142685A604B26E59A /* CommentRepository.swift */; };
 		C3A8001986CBE98A0EF40902 /* APIRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2562CF2838DBAA70327116 /* APIRequest.swift */; };
@@ -120,6 +121,7 @@
 		7BA0DD3B51BE35D656634904 /* LokaColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LokaColor.swift; sourceTree = "<group>"; };
 		861DF99F5C51182A8D709347 /* CreateIssueViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateIssueViewModel.swift; sourceTree = "<group>"; };
 		87328D6D4B4B97E1F63701FA /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		87F19430E270C9FE43CCB065 /* FieldError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldError.swift; sourceTree = "<group>"; };
 		88D75F7FDAE270829E4572CB /* Loka.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Loka.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B9E98186BB4B9BBA43A9DCE /* NotificationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationRepository.swift; sourceTree = "<group>"; };
 		8F0252725CA75C471FC9DE8E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 			children = (
 				F2705FC6B5B0CB87BB5CB922 /* CategoryTag.swift */,
 				E2038DBD48D2734B18A6F69F /* EmptyStateView.swift */,
+				87F19430E270C9FE43CCB065 /* FieldError.swift */,
 				B77F258262A372624F2C8339 /* FilterChip.swift */,
 				6703B783F70EE1660DA2C3BB /* LokaAvatar.swift */,
 				672C601265A641128C357723 /* LokaButton.swift */,
@@ -537,6 +540,7 @@
 				03B00420547CED1B5366C717 /* FeedFilter.swift in Sources */,
 				8737EB70C3AE7B4F70A03F86 /* FeedView.swift in Sources */,
 				84D9953E973C1B7F9B343272 /* FeedViewModel.swift in Sources */,
+				B0C9AA7259E89672801C1A19 /* FieldError.swift in Sources */,
 				3BE24CDF3A3339B35574E26D /* FilterChip.swift in Sources */,
 				EA43C145B4C4A8689742AAED /* HTTPMethod.swift in Sources */,
 				F3B921B14AD4A035D54F45B6 /* Haptics.swift in Sources */,

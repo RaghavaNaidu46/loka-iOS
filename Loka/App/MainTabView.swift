@@ -7,16 +7,16 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             LokaColor.base.ignoresSafeArea()
 
-            // All screens stay alive so switching tabs preserves their state and
-            // navigation stacks instead of rebuilding (which caused flicker).
-            ZStack {
-                screen(.home) { FeedView() }
-                screen(.search) { SearchView() }
-                screen(.create) { CreateIssueView() }
-                screen(.notifications) { NotificationsView() }
-                screen(.profile) { ProfileView() }
+            // A real TabView so tabs load lazily and only the visible tab renders
+            // its list — essential once the feed holds large amounts of data.
+            // The native bar is hidden; the floating CustomTabBar drives selection.
+            TabView(selection: $router.selectedTab) {
+                FeedView().tag(AppTab.home).hideSystemTabBar()
+                SearchView().tag(AppTab.search).hideSystemTabBar()
+                CreateIssueView().tag(AppTab.create).hideSystemTabBar()
+                NotificationsView().tag(AppTab.notifications).hideSystemTabBar()
+                ProfileView().tag(AppTab.profile).hideSystemTabBar()
             }
-            .animation(LokaAnimation.fade, value: router.selectedTab)
 
             if !isNavigating {
                 CustomTabBar(selection: $router.selectedTab)
@@ -25,17 +25,6 @@ struct MainTabView: View {
         }
         .ignoresSafeArea(.keyboard)
         .animation(LokaAnimation.snappy, value: isNavigating)
-    }
-
-    /// Renders a tab's screen, keeping it in the hierarchy but only visible and
-    /// interactive when selected — a cross-fade handles the transition.
-    @ViewBuilder
-    private func screen<Content: View>(_ tab: AppTab, @ViewBuilder content: () -> Content) -> some View {
-        let isActive = router.selectedTab == tab
-        content()
-            .opacity(isActive ? 1 : 0)
-            .allowsHitTesting(isActive)
-            .zIndex(isActive ? 1 : 0)
     }
 
     /// Hide the floating tab bar while a detail screen is pushed on the active tab.
@@ -47,6 +36,13 @@ struct MainTabView: View {
         case .profile:       return !router.profilePath.isEmpty
         case .create:        return false
         }
+    }
+}
+
+private extension View {
+    /// Hides the system `TabView` bar so only the custom floating bar shows.
+    func hideSystemTabBar() -> some View {
+        toolbar(.hidden, for: .tabBar)
     }
 }
 

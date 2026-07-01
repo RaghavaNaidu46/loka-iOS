@@ -8,15 +8,10 @@ struct AuthView: View {
         ScrollView {
             VStack(spacing: LokaSpacing.xl) {
                 brandHeader
-                VStack(alignment: .leading, spacing: LokaSpacing.lg) {
-                    switch viewModel.step {
-                    case .login:      loginStep
-                    case .otpCode:    otpCodeStep
-                    case .signup:     signupStep
-                    case .signupCode: signupCodeStep
-                    }
-                }
-                .padding(.horizontal, LokaSpacing.lg)
+                stepContent
+                    .padding(.horizontal, LokaSpacing.lg)
+                    .transition(stepTransition)
+                    .id(viewModel.step)
             }
             .padding(.bottom, LokaSpacing.xxl)
         }
@@ -26,6 +21,27 @@ struct AuthView: View {
         .onChange(of: viewModel.isAuthenticated) { _, authenticated in
             if authenticated { Haptics.success(); onComplete() }
         }
+    }
+
+    @ViewBuilder private var stepContent: some View {
+        VStack(alignment: .leading, spacing: LokaSpacing.lg) {
+            switch viewModel.step {
+            case .login:      loginStep
+            case .otpCode:    otpCodeStep
+            case .signup:     signupStep
+            case .signupCode: signupCodeStep
+            }
+        }
+    }
+
+    /// Forward: incoming step enters from the right, outgoing exits left.
+    /// Back: incoming enters from the left, outgoing exits right.
+    private var stepTransition: AnyTransition {
+        let back = viewModel.isBackNavigation
+        return .asymmetric(
+            insertion: .move(edge: back ? .leading : .trailing).combined(with: .opacity),
+            removal: .move(edge: back ? .trailing : .leading).combined(with: .opacity)
+        )
     }
 
     // MARK: - Brand header
@@ -69,8 +85,8 @@ struct AuthView: View {
 
     private var loginStep: some View {
         VStack(alignment: .leading, spacing: LokaSpacing.lg) {
-            LokaTextField(placeholder: "Email address", text: $viewModel.email, systemImage: "envelope", keyboard: .emailAddress, textContentType: .emailAddress)
-            LokaTextField(placeholder: "Password", text: $viewModel.password, systemImage: "lock", isSecure: true, textContentType: .password)
+            LokaTextField(placeholder: "Email address", text: $viewModel.email, systemImage: "envelope", keyboard: .emailAddress, textContentType: .emailAddress, error: viewModel.emailError)
+            LokaTextField(placeholder: "Password", text: $viewModel.password, systemImage: "lock", isSecure: true, textContentType: .password, error: viewModel.passwordError)
             errorText
             LokaButton(title: "Sign in", isLoading: viewModel.isLoading) {
                 Task { await viewModel.login() }
@@ -85,7 +101,7 @@ struct AuthView: View {
 
     private var otpCodeStep: some View {
         VStack(alignment: .leading, spacing: LokaSpacing.lg) {
-            LokaTextField(placeholder: "123456", text: $viewModel.code, systemImage: "number", keyboard: .numberPad)
+            LokaTextField(placeholder: "123456", text: $viewModel.code, systemImage: "number", keyboard: .numberPad, error: viewModel.codeError)
             errorText
             LokaButton(title: "Verify & sign in", isLoading: viewModel.isLoading) {
                 Task { await viewModel.verifyLoginCode() }
@@ -97,10 +113,10 @@ struct AuthView: View {
 
     private var signupStep: some View {
         VStack(alignment: .leading, spacing: LokaSpacing.lg) {
-            LokaTextField(placeholder: "Display name", text: $viewModel.displayName, systemImage: "person", textContentType: .name, autocapitalization: .words)
-            LokaTextField(placeholder: "Email address", text: $viewModel.email, systemImage: "envelope", keyboard: .emailAddress, textContentType: .emailAddress)
-            LokaTextField(placeholder: "Password", text: $viewModel.password, systemImage: "lock", isSecure: true, textContentType: .newPassword)
-            LokaTextField(placeholder: "Confirm password", text: $viewModel.confirmPassword, systemImage: "lock.fill", isSecure: true, textContentType: .newPassword)
+            LokaTextField(placeholder: "Display name", text: $viewModel.displayName, systemImage: "person", textContentType: .name, autocapitalization: .words, error: viewModel.displayNameError)
+            LokaTextField(placeholder: "Email address", text: $viewModel.email, systemImage: "envelope", keyboard: .emailAddress, textContentType: .emailAddress, error: viewModel.emailError)
+            LokaTextField(placeholder: "Password", text: $viewModel.password, systemImage: "lock", isSecure: true, textContentType: .newPassword, error: viewModel.passwordError)
+            LokaTextField(placeholder: "Confirm password", text: $viewModel.confirmPassword, systemImage: "lock.fill", isSecure: true, textContentType: .newPassword, error: viewModel.confirmPasswordError)
             errorText
             LokaButton(title: "Create account", isLoading: viewModel.isLoading) {
                 Task { await viewModel.signup() }
@@ -111,7 +127,7 @@ struct AuthView: View {
 
     private var signupCodeStep: some View {
         VStack(alignment: .leading, spacing: LokaSpacing.lg) {
-            LokaTextField(placeholder: "123456", text: $viewModel.code, systemImage: "number", keyboard: .numberPad)
+            LokaTextField(placeholder: "123456", text: $viewModel.code, systemImage: "number", keyboard: .numberPad, error: viewModel.codeError)
             errorText
             LokaButton(title: "Verify & continue", isLoading: viewModel.isLoading) {
                 Task { await viewModel.verifySignupCode() }

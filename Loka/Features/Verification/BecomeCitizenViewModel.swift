@@ -5,10 +5,11 @@ final class BecomeCitizenViewModel: ObservableObject {
     enum Step: Int, CaseIterable { case intro, upload, shareCode, processing, districts, complete }
 
     @Published var step: Step = .intro
-    @Published var shareCode: String = ""
+    @Published var shareCode: String = "" { didSet { shareCodeError = nil } }
     @Published var homeDistrict: District?
     @Published var livingInDistrict: District?
     @Published var isLoading = false
+    @Published var shareCodeError: String?
     @Published var errorMessage: String?
 
     private let service: VerificationService
@@ -21,6 +22,18 @@ final class BecomeCitizenViewModel: ObservableObject {
         if let next = Step(rawValue: step.rawValue + 1) {
             step = next
         }
+    }
+
+    /// Validate the share code, then run verification. On failure, return to the
+    /// share-code step so the error is visible (instead of a stuck spinner).
+    func startVerification() async {
+        guard !shareCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            shareCodeError = "Enter your share code"
+            return
+        }
+        step = .processing
+        await submitVerification()
+        if errorMessage != nil { step = .shareCode }
     }
 
     func submitVerification() async {

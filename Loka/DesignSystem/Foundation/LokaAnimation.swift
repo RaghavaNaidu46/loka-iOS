@@ -11,3 +11,14 @@ enum LokaAnimation {
     /// Simple opacity cross-fades.
     static let fade = Animation.easeInOut(duration: 0.25)
 }
+
+extension AnyTransition {
+    /// Splash → app: the splash gently scales up and fades, dissolving away to
+    /// reveal the destination underneath (no hard blue→white cut).
+    static var splashExit: AnyTransition {
+        .asymmetric(
+            insertion: .opacity,
+            removal: .scale(scale: 1.12).combined(with: .opacity)
+        )
+    }
+}

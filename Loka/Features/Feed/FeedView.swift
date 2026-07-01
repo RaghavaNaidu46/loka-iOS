@@ -112,6 +112,7 @@ struct FeedView: View {
             .padding(.horizontal, LokaSpacing.lg)
             .padding(.top, LokaSpacing.xs)
             .padding(.bottom, LokaSize.tabBarClearance)
+            .animation(LokaAnimation.smooth, value: viewModel.isLoading)
         }
         .scrollIndicators(.hidden)
         .refreshable { await viewModel.load() }

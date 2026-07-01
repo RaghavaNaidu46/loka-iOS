@@ -40,8 +40,10 @@ struct LokaAvatar: View {
             (0x7A5AF8, 0x5B3FE0), (0x2E9BD6, 0x1F7BB8), (0x2F9E68, 0x1F7A4E),
             (0xE0A320, 0xC7871B), (0xE0574F, 0xC0463D), (0x2B4EFF, 0x1B2FB8)
         ]
-        let index = abs(name.hashValue) % palette.count
-        let pair = palette[index]
+        // Stable, cheap hash so a citizen keeps the same color across launches
+        // (String.hashValue is seeded per-process and would change each launch).
+        let seed = name.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+        let pair = palette[seed % palette.count]
         return LinearGradient(
             colors: [color(pair.0), color(pair.1)],
             startPoint: .topLeading,

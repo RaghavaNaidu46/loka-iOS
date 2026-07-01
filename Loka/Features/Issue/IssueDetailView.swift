@@ -11,13 +11,15 @@ struct IssueDetailView: View {
     var body: some View {
         Group {
             if let issue = viewModel.issue {
-                loaded(issue)
+                loaded(issue).transition(.opacity)
             } else if viewModel.isLoading {
-                loadingState
+                loadingState.transition(.opacity)
             } else {
-                errorState
+                errorState.transition(.opacity)
             }
         }
+        .animation(LokaAnimation.smooth, value: viewModel.issue?.id)
+        .animation(LokaAnimation.smooth, value: viewModel.isLoading)
         .background(LokaColor.base)
         .navigationTitle("Issue")
         .navigationBarTitleDisplayMode(.inline)
@@ -41,7 +43,9 @@ struct IssueDetailView: View {
             .padding(.bottom, LokaSpacing.xxl)
         }
         .scrollIndicators(.hidden)
-        .safeAreaInset(edge: .bottom) { actionBar }
+        .safeAreaInset(edge: .bottom) {
+            actionBar.animation(LokaAnimation.snappy, value: viewModel.participation?.id)
+        }
         .alert("Support is permanent", isPresented: $showSupportConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Support") { Haptics.success(); Task { await viewModel.support() } }
@@ -261,6 +265,7 @@ private struct OpposeSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var explanation: String = ""
     @State private var showConfirm = false
+    @State private var error: String?
     let onSubmit: (String) -> Void
 
     private let minimum = 30
@@ -288,9 +293,13 @@ private struct OpposeSheet: View {
                             .padding(LokaSpacing.sm)
                     }
                     .background(LokaColor.surface, in: RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: LokaCorner.md, style: .continuous)
+                            .strokeBorder(error != nil ? LokaColor.danger : LokaColor.border, lineWidth: error != nil ? 1.5 : 1)
+                    )
 
                     HStack {
+                        FieldError(message: error)
                         Spacer()
                         Text("\(explanation.count)/\(minimum) minimum")
                             .font(LokaFont.caption)
@@ -298,11 +307,16 @@ private struct OpposeSheet: View {
                     }
 
                     LokaButton(title: "Continue", style: .primary) {
-                        if isValid { Haptics.warning(); showConfirm = true }
+                        if isValid {
+                            Haptics.warning(); showConfirm = true
+                        } else {
+                            error = "Add at least \(minimum) characters"
+                        }
                     }
-                    .opacity(isValid ? 1 : 0.5)
                 }
                 .padding(LokaSpacing.lg)
+                .animation(LokaAnimation.snappy, value: error)
+                .onChange(of: explanation) { _, _ in error = nil }
             }
             .background(LokaColor.base)
             .navigationTitle("Oppose")
