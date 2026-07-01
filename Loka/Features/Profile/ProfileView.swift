@@ -166,7 +166,10 @@ struct ProfileView: View {
             Divider().overlay(LokaColor.divider).padding(.leading, 56)
             actionRow(icon: "doc.text.fill", tint: LokaColor.textSecondary, title: "Policies")
             Divider().overlay(LokaColor.divider).padding(.leading, 56)
-            actionRow(icon: "gearshape.fill", tint: LokaColor.textSecondary, title: "Settings")
+            NavigationLink { SettingsView() } label: {
+                actionRow(icon: "gearshape.fill", tint: LokaColor.textSecondary, title: "Settings")
+            }
+            .buttonStyle(PressableButtonStyle())
         }
     }
 

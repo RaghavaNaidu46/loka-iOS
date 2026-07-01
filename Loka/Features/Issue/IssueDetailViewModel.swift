@@ -26,6 +26,16 @@ final class IssueDetailViewModel: ObservableObject {
     func load(id: String) async {
         isLoading = true
         errorMessage = nil
+        #if DEBUG
+        if DebugSettings.shared.useSampleData, SampleFeed.isSample(id), let sample = SampleFeed.detail(id: id) {
+            issue = sample
+            comments = SampleFeed.comments(for: id)
+            related = SampleFeed.related(to: id)
+            participation = nil
+            isLoading = false
+            return
+        }
+        #endif
         do {
             async let detailTask = issueRepository.detail(id: id)
             async let commentsTask = commentRepository.list(issueId: id)

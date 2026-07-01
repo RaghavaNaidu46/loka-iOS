@@ -13,8 +13,18 @@ struct IssueFeedCard: View {
             VStack(alignment: .leading, spacing: LokaSpacing.md) {
                 authorRow
                 content
+                if !issue.media.isEmpty {
+                    PostMediaView(media: issue.media, interactive: false)
+                } else if issue.evidenceCount > 0 {
+                    evidenceStrip
+                }
+                if let link = issue.link {
+                    LinkPreviewCard(link: link, interactive: false)
+                }
+                if let poll = issue.poll {
+                    PollView(poll: poll, interactive: false)
+                }
                 tagRow
-                if issue.evidenceCount > 0 { evidenceStrip }
                 Divider().overlay(LokaColor.divider)
                 ParticipationBar(supportCount: issue.supportCount, opposeCount: issue.opposeCount)
             }

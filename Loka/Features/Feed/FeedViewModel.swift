@@ -41,6 +41,18 @@ final class FeedViewModel: ObservableObject {
     func load() async {
         isLoading = true
         errorMessage = nil
+        #if DEBUG
+        if DebugSettings.shared.useSampleData {
+            let all = SampleFeed.issues
+            nearby = Array(all.prefix(30))
+            fresh = all.sorted { $0.createdAt > $1.createdAt }
+            priority = all.sorted { $0.participationTotal > $1.participationTotal }
+            resolved = all.filter { $0.status == .resolved }
+            rebuildMerged()
+            isLoading = false
+            return
+        }
+        #endif
         do {
             async let nearbyTask = repository.feedNearby()
             async let freshTask = repository.feedNew()

@@ -34,6 +34,14 @@ final class AppSessionManager: ObservableObject {
     }
 
     func bootstrap() async {
+        #if DEBUG
+        // Preview the sample feed without a backend: set LOKA_SAMPLE_PREVIEW=1
+        // in the scheme/launch env, or tap "Preview sample feed" on sign-in.
+        if ProcessInfo.processInfo.environment["LOKA_SAMPLE_PREVIEW"] != nil {
+            enterSamplePreview()
+            return
+        }
+        #endif
         guard secureStorage.accessToken != nil else {
             authState = .anonymous
             return
@@ -56,6 +64,18 @@ final class AppSessionManager: ObservableObject {
             authState = .anonymous
         }
     }
+
+    #if DEBUG
+    /// Enter an authenticated preview session (no backend) with sample data on.
+    func enterSamplePreview() {
+        DebugSettings.shared.useSampleData = true
+        currentCitizen = nil
+        homeDistrict = LokaRegion.sampleDistricts.first
+        livingInDistrict = nil
+        citizenState = .verified
+        authState = .authenticated(citizenId: "preview")
+    }
+    #endif
 
     func signOut() {
         // logout() blacklists the refresh token and then clears secure storage.

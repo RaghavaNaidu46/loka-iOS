@@ -34,9 +34,14 @@ struct RootView: View {
         switch session.authState {
         case .anonymous:
             NavigationStack {
-                AuthView(onComplete: {
-                    Task { await session.bootstrap() }
-                })
+                AuthView(
+                    onComplete: { Task { await session.bootstrap() } },
+                    onPreview: {
+                        #if DEBUG
+                        withAnimation(LokaAnimation.smooth) { session.enterSamplePreview() }
+                        #endif
+                    }
+                )
             }
         case .authenticated:
             MainTabView()

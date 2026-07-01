@@ -15,6 +15,12 @@ struct Issue: Identifiable, Codable, Hashable {
     var updatedAt: Date
     var creatorDisplayName: String
 
+    /// Optional rich content. Defaulted so decoding from `IssueDTO` and every
+    /// existing initializer keep working; the backend has no media yet.
+    var media: [PostMedia] = []
+    var link: LinkPreview? = nil
+    var poll: PostPoll? = nil
+
     var participationTotal: Int { supportCount + opposeCount }
     var supportRatio: Double {
         guard participationTotal > 0 else { return 0 }

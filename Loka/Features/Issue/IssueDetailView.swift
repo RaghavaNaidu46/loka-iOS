@@ -32,6 +32,7 @@ struct IssueDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: LokaSpacing.xl) {
                 hero(issue)
+                richContent(issue)
                 participationSummary(issue)
                 textSection(title: "The problem", icon: "exclamationmark.bubble.fill", text: issue.description)
                 textSection(title: "Desired outcome", icon: "target", text: issue.desiredOutcome)
@@ -87,6 +88,19 @@ struct IssueDetailView: View {
                     .foregroundStyle(LokaColor.textSecondary)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func richContent(_ issue: Issue) -> some View {
+        if !issue.media.isEmpty {
+            PostMediaView(media: issue.media)
+        }
+        if let link = issue.link {
+            LinkPreviewCard(link: link)
+        }
+        if let poll = issue.poll {
+            PollView(poll: poll)
         }
     }
 

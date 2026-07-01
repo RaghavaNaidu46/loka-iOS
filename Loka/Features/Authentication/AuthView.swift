@@ -3,6 +3,8 @@ import SwiftUI
 struct AuthView: View {
     @StateObject private var viewModel = AuthViewModel()
     var onComplete: () -> Void = {}
+    /// DEBUG-only: jump straight into the sample feed without a backend.
+    var onPreview: (() -> Void)? = nil
 
     var body: some View {
         ScrollView {
@@ -96,6 +98,16 @@ struct AuthView: View {
             }
             .disabled(viewModel.isLoading)
             footerPrompt(question: "New to Loka?", action: "Create an account") { viewModel.showSignup() }
+            #if DEBUG
+            if let onPreview {
+                Button { onPreview() } label: {
+                    Label("Preview sample feed", systemImage: "eye")
+                        .font(LokaFont.caption)
+                        .foregroundStyle(LokaColor.textTertiary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            #endif
         }
     }
 
