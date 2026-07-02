@@ -12,16 +12,24 @@ struct MapView: View {
     @State private var camera: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: LokaRegion.mapCenter.clCoordinate,
-            span: MKCoordinateSpan(latitudeDelta: LokaRegion.mapSpanDegrees, longitudeDelta: LokaRegion.mapSpanDegrees)
+            span: MKCoordinateSpan(latitudeDelta: 9, longitudeDelta: 9)
         )
     )
     @State private var selected: IssueAnnotation?
+    /// Current zoom (latitude span, degrees); pins shrink as this grows.
+    @State private var span: Double = 9
+
+    /// Pins are full size when zoomed in, ~0.65× when zoomed out.
+    private var pinScale: CGFloat {
+        let t = min(max((span - 1.0) / 8.0, 0), 1)   // 0 zoomed in … 1 zoomed out
+        return 1.0 - 0.35 * t
+    }
     @State private var beaks: [AreaCount] = []
 
     /// Pins closer than this on screen (points) are counted in one beak.
     private let clusterRadius: CGFloat = 48
 
-    /// Keep the camera within Andhra Pradesh + Telangana (can't pan/zoom away).
+    /// Keep the camera within Andhra Pradesh + Telangana (smooth hard containment).
     private static let cameraBounds = MapCameraBounds(
         centerCoordinateBounds: MKCoordinateRegion(
             center: LokaRegion.mapCenter.clCoordinate,
@@ -39,7 +47,12 @@ struct MapView: View {
             CLLocationCoordinate2D(latitude: 5, longitude: 95),
             CLLocationCoordinate2D(latitude: 5, longitude: 68)
         ]
-        let holes = RegionBorders.rings.map { MKPolygon(coordinates: $0, count: $0.count) }
+        // Decimate the border rings (~1000 → ~250 pts) so the overlay is cheap
+        // to re-render while panning/zooming; the edge stays visually accurate.
+        let holes = RegionBorders.rings.map { ring -> MKPolygon in
+            let pts = stride(from: 0, to: ring.count, by: 4).map { ring[$0] }
+            return MKPolygon(coordinates: pts, count: pts.count)
+        }
         return MKPolygon(coordinates: outer, count: outer.count, interiorPolygons: holes)
     }
 
@@ -59,8 +72,10 @@ struct MapView: View {
                     }
                     // Count beaks cluster by on-screen proximity; pins unchanged.
                     ForEach(beaks) { area in
-                        Annotation("", coordinate: area.coordinate) {
-                            countBeak(area.count)
+                        // `.bottom` anchor floats the beak above the point AND keeps
+                        // its tap target on the content (an offset would not be tappable).
+                        Annotation("", coordinate: area.coordinate, anchor: .bottom) {
+                            countBeak(area.count, at: area.coordinate)
                         }
                         .annotationTitles(.hidden)
                     }
@@ -73,10 +88,12 @@ struct MapView: View {
                     }
                 }
                 .mapStyle(.standard(pointsOfInterest: .excludingAll))
-                .onMapCameraChange(frequency: .onEnd) { _ in recluster(proxy) }
+                .onMapCameraChange(frequency: .onEnd) { context in
+                    span = context.region.span.latitudeDelta
+                    recluster(proxy)
+                }
                 .onChange(of: viewModel.annotations.count) { _, _ in recluster(proxy) }
                 .ignoresSafeArea(edges: .top)
-                .overlay(alignment: .top) { header }
                 .overlay(alignment: .bottom) { previewCard }
                 .navigationDestination(for: IssueRoute.self) { route in
                     switch route {
@@ -123,25 +140,30 @@ struct MapView: View {
 
     private func pin(for item: IssueAnnotation) -> some View {
         let isSelected = selected?.id == item.id
+        let diameter = (isSelected ? 46 : 36) * pinScale
+        let iconSize = (isSelected ? 18 : 14) * pinScale
         return Image(systemName: item.issue.category.systemImage)
-            .font(.system(size: isSelected ? 18 : 14, weight: .bold))
+            .font(.system(size: iconSize, weight: .bold))
             .foregroundStyle(.white)
-            .frame(width: isSelected ? 46 : 36, height: isSelected ? 46 : 36)
+            .frame(width: diameter, height: diameter)
             .background(item.issue.category.tint, in: Circle())
-            .overlay(Circle().strokeBorder(.white, lineWidth: 2.5))
-            .lokaShadow(.card)
-            .scaleEffect(isSelected ? 1.05 : 1)
+            .overlay(Circle().strokeBorder(.white, lineWidth: max(2.5 * pinScale, 1.6)))
+            .animation(LokaAnimation.snappy, value: pinScale)
             .animation(LokaAnimation.snappy, value: isSelected)
             .onTapGesture {
                 Haptics.selection()
-                withAnimation(LokaAnimation.snappy) {
-                    selected = item
-                    camera = .region(MKCoordinateRegion(
-                        center: item.coordinate,
-                        span: MKCoordinateSpan(latitudeDelta: 0.6, longitudeDelta: 0.6)
-                    ))
-                }
+                selected = item
+                setSpan(0.18, at: item.coordinate)   // zoom right in on the pin
             }
+    }
+
+    private func setSpan(_ delta: Double, at coordinate: CLLocationCoordinate2D) {
+        withAnimation(LokaAnimation.smooth) {
+            camera = .region(MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: delta, longitudeDelta: delta)
+            ))
+        }
     }
 
     // MARK: - "Coming soon" teasers
@@ -182,7 +204,7 @@ struct MapView: View {
 
     // MARK: - Count beak
 
-    private func countBeak(_ count: Int) -> some View {
+    private func countBeak(_ count: Int, at coordinate: CLLocationCoordinate2D) -> some View {
         VStack(spacing: -1) {
             Text("\(count)")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -196,30 +218,12 @@ struct MapView: View {
                 .frame(width: 10, height: 6)
         }
         .lokaShadow(.card)
-        .offset(y: -34)              // float above the pin stack
-        .allowsHitTesting(false)     // never intercept taps meant for the pins
-    }
-
-    // MARK: - Header
-
-    private var header: some View {
-        HStack(spacing: LokaSpacing.md) {
-            BrandMark(size: 36, onGradient: false)
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Issue map")
-                    .font(LokaFont.headingSmall)
-                    .foregroundStyle(LokaColor.textPrimary)
-                Text("\(viewModel.annotations.count) issues across AP & Telangana")
-                    .font(LokaFont.caption)
-                    .foregroundStyle(LokaColor.textSecondary)
-            }
-            Spacer()
+        .padding(.bottom, 6)         // small gap above the pin stack
+        .contentShape(Rectangle())
+        .onTapGesture {              // tap a cluster to zoom close in on it
+            Haptics.impact(.light)
+            setSpan(0.35, at: coordinate)
         }
-        .padding(LokaSpacing.md)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: LokaCorner.lg, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: LokaCorner.lg, style: .continuous).strokeBorder(LokaColor.border, lineWidth: 0.5))
-        .padding(.horizontal, LokaSpacing.lg)
-        .padding(.top, LokaSpacing.xs)
     }
 
     // MARK: - Preview card
