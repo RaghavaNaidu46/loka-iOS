@@ -12,7 +12,7 @@ struct MainTabView: View {
             // The native bar is hidden; the floating CustomTabBar drives selection.
             TabView(selection: $router.selectedTab) {
                 FeedView().tag(AppTab.home).hideSystemTabBar()
-                SearchView().tag(AppTab.search).hideSystemTabBar()
+                MapView().tag(AppTab.map).hideSystemTabBar()
                 CreateIssueView().tag(AppTab.create).hideSystemTabBar()
                 NotificationsView().tag(AppTab.notifications).hideSystemTabBar()
                 ProfileView().tag(AppTab.profile).hideSystemTabBar()
@@ -31,7 +31,7 @@ struct MainTabView: View {
     private var isNavigating: Bool {
         switch router.selectedTab {
         case .home:          return !router.feedPath.isEmpty
-        case .search:        return !router.searchPath.isEmpty
+        case .map:           return !router.mapPath.isEmpty
         case .notifications: return !router.notificationsPath.isEmpty
         case .profile:       return !router.profilePath.isEmpty
         case .create:        return false

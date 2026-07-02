@@ -36,15 +36,22 @@ enum SampleFeed {
     // MARK: - Generation
 
     private static func build() -> [Issue] {
-        let districts = LokaRegion.sampleDistricts
         let categories = IssueCategory.allCases
         let statuses: [IssueStatus] = [.published, .active, .underReview, .resolved, .submitted, .rejected, .archived, .merged]
 
-        return (0..<112).map { i in
+        return (0..<140).map { i in
             let c = contentPool[i % contentPool.count]
-            let district = districts[i % districts.count]
+            let place = places[i % places.count]
+            // Each place becomes the issue's district so locations spread across
+            // both states (not just a handful of cities).
+            let district = District(id: "smpl-\(i % places.count)", name: place.name, state: place.state,
+                                    country: "India", coordinate: Coordinate(latitude: place.lat, longitude: place.lon))
             let (media, link, poll, evidence) = payload(for: i, keywords: c.keywords)
             let created = Date().addingTimeInterval(-Double(i) * 5_400 - 240)   // ~1.5h apart, newest a few min ago
+
+            // Scatter pins ~±0.05° (~5km) around the town centre.
+            let point = Coordinate(latitude: place.lat + Double((i % 13) - 6) * 0.008,
+                                   longitude: place.lon + Double((i % 11) - 5) * 0.008)
 
             return Issue(
                 id: "sample-\(i)",
@@ -52,7 +59,7 @@ enum SampleFeed {
                 description: (i % 14 == 13) ? longBody : c.body,
                 desiredOutcome: c.outcome,
                 category: categories[i % categories.count],
-                location: IssueLocation(area: i % 2 == 0 ? c.area : nil, city: district.name, district: district),
+                location: IssueLocation(area: i % 2 == 0 ? c.area : nil, city: district.name, district: district, coordinate: point),
                 status: statuses[i % statuses.count],
                 supportCount: 5 + (i * 13) % 480,
                 opposeCount: (i * 7) % 90,
@@ -144,6 +151,45 @@ enum SampleFeed {
     private static let longBody = """
     This has been an ongoing problem for our neighbourhood for several months now, and despite multiple informal complaints nothing has changed. The issue affects everyone who uses this route daily — schoolchildren, office-goers, and especially the elderly. During peak hours it becomes genuinely unsafe, and after rain it is worse. We have documented it repeatedly and are now raising it here formally so the community can add their support and the concerned department can prioritise a lasting fix rather than a temporary patch.
     """
+
+    /// Towns and cities across Andhra Pradesh & Telangana so pins spread over
+    /// both states rather than clustering in a few cities.
+    private static let places: [(name: String, state: String, lat: Double, lon: Double)] = [
+        // Andhra Pradesh
+        ("Visakhapatnam", "Andhra Pradesh", 17.6868, 83.2185),
+        ("Vijayawada", "Andhra Pradesh", 16.5062, 80.6480),
+        ("Guntur", "Andhra Pradesh", 16.3067, 80.4365),
+        ("Tirupati", "Andhra Pradesh", 13.6288, 79.4192),
+        ("Nellore", "Andhra Pradesh", 14.4426, 79.9865),
+        ("Kakinada", "Andhra Pradesh", 16.9891, 82.2475),
+        ("Rajamahendravaram", "Andhra Pradesh", 16.9891, 81.7840),
+        ("Kurnool", "Andhra Pradesh", 15.8281, 78.0373),
+        ("Anantapur", "Andhra Pradesh", 14.6819, 77.6006),
+        ("Kadapa", "Andhra Pradesh", 14.4673, 78.8242),
+        ("Eluru", "Andhra Pradesh", 16.7107, 81.0952),
+        ("Ongole", "Andhra Pradesh", 15.5057, 80.0499),
+        ("Vizianagaram", "Andhra Pradesh", 18.1067, 83.3956),
+        ("Srikakulam", "Andhra Pradesh", 18.2969, 83.8938),
+        ("Chittoor", "Andhra Pradesh", 13.2172, 79.1003),
+        ("Machilipatnam", "Andhra Pradesh", 16.1875, 81.1389),
+        ("Tenali", "Andhra Pradesh", 16.2430, 80.6400),
+        ("Proddatur", "Andhra Pradesh", 14.7502, 78.5481),
+        // Telangana
+        ("Hyderabad", "Telangana", 17.3850, 78.4867),
+        ("Secunderabad", "Telangana", 17.4399, 78.4983),
+        ("Warangal", "Telangana", 17.9689, 79.5941),
+        ("Khammam", "Telangana", 17.2473, 80.1514),
+        ("Nizamabad", "Telangana", 18.6725, 78.0941),
+        ("Karimnagar", "Telangana", 18.4386, 79.1288),
+        ("Ramagundam", "Telangana", 18.7550, 79.4740),
+        ("Mahbubnagar", "Telangana", 16.7488, 77.9857),
+        ("Nalgonda", "Telangana", 17.0575, 79.2684),
+        ("Adilabad", "Telangana", 19.6641, 78.5320),
+        ("Siddipet", "Telangana", 18.1018, 78.8520),
+        ("Suryapet", "Telangana", 17.1400, 79.6200),
+        ("Miryalaguda", "Telangana", 16.8726, 79.5658),
+        ("Sangareddy", "Telangana", 17.6247, 78.0820)
+    ]
 
     private static let authors = [
         "Aarav Sharma", "Diya Patel", "Kabir Rao", "Ananya Reddy", "Vivaan Nair",

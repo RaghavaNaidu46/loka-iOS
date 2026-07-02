@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SearchView: View {
     @EnvironmentObject private var router: AppRouter
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = SearchViewModel()
 
     var body: some View {
@@ -22,6 +23,12 @@ struct SearchView: View {
             .padding(.top, LokaSpacing.sm)
             .background(LokaColor.base)
             .navigationTitle("Search")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
             .navigationDestination(for: IssueRoute.self) { route in
                 switch route {
                 case .detail(let id): IssueDetailView(issueId: id)

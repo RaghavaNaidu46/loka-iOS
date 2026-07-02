@@ -2,7 +2,7 @@ import SwiftUI
 
 enum AppTab: Hashable {
     case home
-    case search
+    case map
     case create
     case notifications
     case profile
@@ -12,18 +12,16 @@ enum AppTab: Hashable {
 final class AppRouter: ObservableObject {
     @Published var selectedTab: AppTab = .home
     @Published var feedPath = NavigationPath()
-    @Published var searchPath = NavigationPath()
+    @Published var mapPath = NavigationPath()
+    @Published var searchPath = NavigationPath()   // used by the search sheet
     @Published var notificationsPath = NavigationPath()
     @Published var profilePath = NavigationPath()
 
     func openIssue(_ id: String, in tab: AppTab = .home) {
         switch tab {
-        case .home:
-            selectedTab = .home
-            feedPath.append(IssueRoute.detail(id: id))
-        case .search:
-            selectedTab = .search
-            searchPath.append(IssueRoute.detail(id: id))
+        case .map:
+            selectedTab = .map
+            mapPath.append(IssueRoute.detail(id: id))
         case .profile:
             selectedTab = .profile
             profilePath.append(IssueRoute.detail(id: id))

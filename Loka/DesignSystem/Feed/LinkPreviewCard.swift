@@ -22,13 +22,7 @@ struct LinkPreviewCard: View {
                 if let imageURL = link.imageURL {
                     Color.clear
                         .aspectRatio(1.9, contentMode: .fit)
-                        .overlay {
-                            AsyncImage(url: imageURL) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                SkeletonBlock(cornerRadius: 0)
-                            }
-                        }
+                        .overlay { RemoteImage(url: imageURL, maxPixel: 1000) }
                         .clipped()
                 }
                 VStack(alignment: .leading, spacing: LokaSpacing.xs) {

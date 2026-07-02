@@ -5,6 +5,7 @@ struct FeedView: View {
     @EnvironmentObject private var router: AppRouter
     @StateObject private var viewModel = FeedViewModel()
     @State private var filter: FeedFilter = .all
+    @State private var showSearch = false
 
     var body: some View {
         NavigationStack(path: $router.feedPath) {
@@ -21,6 +22,7 @@ struct FeedView: View {
                 }
             }
             .task { if viewModel.nearby.isEmpty { await viewModel.load() } }
+            .sheet(isPresented: $showSearch) { SearchView() }
         }
     }
 
@@ -43,7 +45,7 @@ struct FeedView: View {
             }
             Spacer()
             circleButton(icon: "magnifyingglass") {
-                Haptics.selection(); router.selectedTab = .search
+                Haptics.selection(); showSearch = true
             }
         }
         .padding(.horizontal, LokaSpacing.lg)

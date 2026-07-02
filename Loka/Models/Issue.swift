@@ -21,6 +21,12 @@ struct Issue: Identifiable, Codable, Hashable {
     var link: LinkPreview? = nil
     var poll: PostPoll? = nil
 
+    /// Best available map coordinate: the issue's own point, else its district
+    /// center (directly or by matching a known district id).
+    var mapCoordinate: Coordinate? {
+        location.coordinate ?? location.district.coordinate ?? LokaRegion.coordinate(forDistrictId: location.district.id)
+    }
+
     var participationTotal: Int { supportCount + opposeCount }
     var supportRatio: Double {
         guard participationTotal > 0 else { return 0 }
@@ -32,6 +38,7 @@ struct IssueLocation: Codable, Hashable {
     var area: String?
     var city: String
     var district: District
+    var coordinate: Coordinate? = nil
 
     var displayText: String {
         if let area, !area.isEmpty {

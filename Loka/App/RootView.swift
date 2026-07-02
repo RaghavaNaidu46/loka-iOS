@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var session: AppSessionManager
+    @EnvironmentObject private var router: AppRouter
     @State private var showSplash = true
 
     var body: some View {
@@ -26,6 +27,11 @@ struct RootView: View {
         .task {
             try? await Task.sleep(nanoseconds: 700_000_000)
             await session.bootstrap()
+            #if DEBUG
+            if ProcessInfo.processInfo.environment["LOKA_START_TAB"] == "map" {
+                router.selectedTab = .map
+            }
+            #endif
             showSplash = false
         }
     }

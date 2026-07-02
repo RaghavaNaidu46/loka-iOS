@@ -32,6 +32,9 @@ struct VideoPlayerSheet: View {
             player = p
             p.play()
         }
-        .onDisappear { player?.pause() }
+        .onDisappear {
+            player?.pause()
+            player = nil   // release the player + its buffers promptly
+        }
     }
 }

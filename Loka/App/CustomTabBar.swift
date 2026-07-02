@@ -12,7 +12,7 @@ struct CustomTabBar: View {
     var body: some View {
         HStack(spacing: 0) {
             tabButton(.home, icon: "house.fill", label: "Home")
-            tabButton(.search, icon: "magnifyingglass", label: "Search")
+            tabButton(.map, icon: "map.fill", label: "Map")
             createButton
             tabButton(.notifications, icon: "bell.fill", label: "Alerts", showsBadge: hasNotifications)
             tabButton(.profile, icon: "person.fill", label: "Profile")

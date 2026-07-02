@@ -94,22 +94,9 @@ struct PostMediaView: View {
     }
 
     private func remoteImage(_ url: URL) -> some View {
-        Color.clear.overlay {
-            AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.25))) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill().transition(.opacity)
-                case .failure:
-                    ZStack {
-                        LokaColor.surfaceElevated
-                        Image(systemName: "photo").font(.system(size: 28)).foregroundStyle(LokaColor.textTertiary)
-                    }
-                default:
-                    SkeletonBlock(cornerRadius: 0)
-                }
-            }
-        }
-        .clipped()
+        Color.clear
+            .overlay { RemoteImage(url: url, maxPixel: 1000) }
+            .clipped()
     }
 
     private var playBadge: some View {
