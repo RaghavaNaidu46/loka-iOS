@@ -27,7 +27,7 @@ struct MapView: View {
             center: LokaRegion.mapCenter.clCoordinate,
             span: MKCoordinateSpan(latitudeDelta: 8.5, longitudeDelta: 8.5)
         ),
-        maximumDistance: 2_200_000
+        maximumDistance: 2_800_000
     )
 
     /// A large rectangle with the two states cut out (as holes), so only the
@@ -47,7 +47,8 @@ struct MapView: View {
         NavigationStack(path: $router.mapPath) {
             MapReader { proxy in
                 Map(position: $camera, bounds: Self.cameraBounds) {
-                    // Shade everything outside the real AP + Telangana borders.
+                    // Shade outside the real borders. Geo-anchored so it moves
+                    // with the map (no lag); labels stay above it (MapKit limit).
                     MapPolygon(Self.dimMask)
                         .foregroundStyle(.black.opacity(0.34))
                     ForEach(viewModel.annotations) { item in
@@ -60,6 +61,13 @@ struct MapView: View {
                     ForEach(beaks) { area in
                         Annotation("", coordinate: area.coordinate) {
                             countBeak(area.count)
+                        }
+                        .annotationTitles(.hidden)
+                    }
+                    // "Coming soon" teasers in the shaded neighbouring states.
+                    ForEach(Self.comingSoon) { place in
+                        Annotation("", coordinate: place.coordinate) {
+                            comingSoonBadge(place.name)
                         }
                         .annotationTitles(.hidden)
                     }
@@ -134,6 +142,42 @@ struct MapView: View {
                     ))
                 }
             }
+    }
+
+    // MARK: - "Coming soon" teasers
+
+    private struct ComingSoonPlace: Identifiable {
+        let id: String
+        let name: String
+        let coordinate: CLLocationCoordinate2D
+    }
+
+    /// Neighbouring states shown (dimmed) around the region.
+    private static let comingSoon: [ComingSoonPlace] = [
+        ComingSoonPlace(id: "mh", name: "Maharashtra", coordinate: CLLocationCoordinate2D(latitude: 18.9, longitude: 76.4)),
+        ComingSoonPlace(id: "ka", name: "Karnataka", coordinate: CLLocationCoordinate2D(latitude: 14.5, longitude: 75.9)),
+        ComingSoonPlace(id: "tn", name: "Tamil Nadu", coordinate: CLLocationCoordinate2D(latitude: 12.7, longitude: 79.3)),
+        ComingSoonPlace(id: "od", name: "Odisha", coordinate: CLLocationCoordinate2D(latitude: 19.6, longitude: 83.9)),
+        ComingSoonPlace(id: "cg", name: "Chhattisgarh", coordinate: CLLocationCoordinate2D(latitude: 19.8, longitude: 81.2))
+    ]
+
+    private func comingSoonBadge(_ name: String) -> some View {
+        HStack(spacing: 6) {
+            BrandMark(size: 22, onGradient: false)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(name)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                Text("We're coming")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(.black.opacity(0.5)))
+        .overlay(Capsule().strokeBorder(.white.opacity(0.28), lineWidth: 1))
+        .allowsHitTesting(false)
     }
 
     // MARK: - Count beak
