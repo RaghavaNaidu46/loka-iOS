@@ -88,6 +88,8 @@ struct MapView: View {
                     }
                 }
                 .mapStyle(.standard(pointsOfInterest: .excludingAll))
+                // Update zoom-dependent state only when the gesture ends (no
+                // per-frame work while zooming). Pins animate to their new size.
                 .onMapCameraChange(frequency: .onEnd) { context in
                     span = context.region.span.latitudeDelta
                     recluster(proxy)
