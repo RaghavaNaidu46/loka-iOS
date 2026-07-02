@@ -43,7 +43,7 @@ enum SampleFeed {
         return (0..<112).map { i in
             let c = contentPool[i % contentPool.count]
             let district = districts[i % districts.count]
-            let (media, link, poll, evidence) = payload(for: i)
+            let (media, link, poll, evidence) = payload(for: i, keywords: c.keywords)
             let created = Date().addingTimeInterval(-Double(i) * 5_400 - 240)   // ~1.5h apart, newest a few min ago
 
             return Issue(
@@ -67,23 +67,24 @@ enum SampleFeed {
         }
     }
 
-    /// Assigns the content archetype for a given index.
-    private static func payload(for i: Int) -> ([PostMedia], LinkPreview?, PostPoll?, Int) {
+    /// Assigns the content archetype for a given index, using topic `keywords`
+    /// so the images relate to the post.
+    private static func payload(for i: Int, keywords: String) -> ([PostMedia], LinkPreview?, PostPoll?, Int) {
         switch i % 14 {
-        case 0:  return ([], nil, nil, i % 3)                                  // text only (+evidence)
-        case 1:  return ([SampleMedia.image(i, 1200, 800)], nil, nil, 0)       // landscape image
-        case 2:  return ([SampleMedia.image(i, 800, 1100)], nil, nil, 0)       // portrait image
-        case 3:  return ([SampleMedia.image(i, 1000, 1000)], nil, nil, 0)      // square image
-        case 4:  return (SampleMedia.gallery(i * 4, count: 2), nil, nil, 0)    // 2 images
-        case 5:  return (SampleMedia.gallery(i * 4, count: 3), nil, nil, 0)    // 3 images
-        case 6:  return (SampleMedia.gallery(i * 4, count: 4), nil, nil, 0)    // 4 images
-        case 7:  return (SampleMedia.gallery(i * 4, count: 6), nil, nil, 0)    // 5+ images
-        case 8:  return ([SampleMedia.video(i, posterSeed: i)], nil, nil, 0)   // video
-        case 9:  return ([], SampleMedia.link(i), nil, 0)                      // link
-        case 10: return ([], nil, poll(i), 0)                                  // poll
-        case 11: return ([SampleMedia.image(i, 1000, 700)], nil, poll(i), 0)   // poll + image
-        case 12: return ([SampleMedia.image(i, 1200, 900)], nil, nil, 0)       // image + text
-        default: return ([], nil, nil, 0)                                      // long text only
+        case 0:  return ([], nil, nil, i % 3)                                          // text only (+evidence)
+        case 1:  return ([SampleMedia.image(i, 1200, 800, keywords)], nil, nil, 0)     // landscape image
+        case 2:  return ([SampleMedia.image(i, 800, 1100, keywords)], nil, nil, 0)     // portrait image
+        case 3:  return ([SampleMedia.image(i, 1000, 1000, keywords)], nil, nil, 0)    // square image
+        case 4:  return (SampleMedia.gallery(i * 4, count: 2, keywords), nil, nil, 0)  // 2 images
+        case 5:  return (SampleMedia.gallery(i * 4, count: 3, keywords), nil, nil, 0)  // 3 images
+        case 6:  return (SampleMedia.gallery(i * 4, count: 4, keywords), nil, nil, 0)  // 4 images
+        case 7:  return (SampleMedia.gallery(i * 4, count: 6, keywords), nil, nil, 0)  // 5+ images
+        case 8:  return ([SampleMedia.video(i, posterSeed: i, keywords)], nil, nil, 0) // video
+        case 9:  return ([], SampleMedia.link(i), nil, 0)                              // link
+        case 10: return ([], nil, poll(i), 0)                                          // poll
+        case 11: return ([SampleMedia.image(i, 1000, 700, keywords)], nil, poll(i), 0) // poll + image
+        case 12: return ([SampleMedia.image(i, 1200, 900, keywords)], nil, nil, 0)     // image + text
+        default: return ([], nil, nil, 0)                                              // long text only
         }
     }
 
@@ -103,33 +104,41 @@ enum SampleFeed {
 
     // MARK: - Text pools
 
-    private struct Content { let title: String; let body: String; let outcome: String; let area: String }
+    private struct Content { let title: String; let body: String; let outcome: String; let area: String; let keywords: String }
 
     private static let contentPool: [Content] = [
         Content(title: "Pothole-ridden stretch near the market needs urgent repair",
                 body: "The 200m road outside the vegetable market has deep potholes that flood after every shower. Two-wheelers skid here daily.",
-                outcome: "Resurface the stretch and fix the camber so water drains off.", area: "MG Road"),
+                outcome: "Resurface the stretch and fix the camber so water drains off.", area: "MG Road",
+                keywords: "pothole,road"),
         Content(title: "Streetlights out on the main road for two weeks",
                 body: "An entire block has been dark since the last storm. Residents avoid walking here after 7pm.",
-                outcome: "Restore the streetlights and add two more poles at the corner.", area: "Sector 4"),
+                outcome: "Restore the streetlights and add two more poles at the corner.", area: "Sector 4",
+                keywords: "streetlight,night"),
         Content(title: "Overflowing garbage bins attracting stray animals",
                 body: "Collection has been irregular and the bins overflow onto the footpath, creating a health hazard near the school.",
-                outcome: "Reinstate daily collection and add a covered bin.", area: "Gandhi Nagar"),
+                outcome: "Reinstate daily collection and add a covered bin.", area: "Gandhi Nagar",
+                keywords: "garbage,street"),
         Content(title: "Irregular water supply in the colony",
                 body: "We get water for barely 30 minutes on alternate days. Families are relying on expensive tankers.",
-                outcome: "Restore a predictable daily supply schedule.", area: "Green Park"),
+                outcome: "Restore a predictable daily supply schedule.", area: "Green Park",
+                keywords: "water,tap"),
         Content(title: "Broken footpath making it unsafe for pedestrians",
                 body: "The tiles are uprooted for a long stretch, forcing people — including elders — to walk on the road.",
-                outcome: "Relay the footpath with a continuous, level surface.", area: "Station Road"),
+                outcome: "Relay the footpath with a continuous, level surface.", area: "Station Road",
+                keywords: "sidewalk,pavement"),
         Content(title: "Waterlogging every time it rains here",
                 body: "The junction turns into a pond within minutes of rain because the drain is choked with silt.",
-                outcome: "De-silt the stormwater drain before the monsoon.", area: "Old Town"),
+                outcome: "De-silt the stormwater drain before the monsoon.", area: "Old Town",
+                keywords: "flood,street"),
         Content(title: "Park benches and lights damaged, needs restoration",
                 body: "The neighbourhood park is unusable in the evening — broken benches and no working lights.",
-                outcome: "Repair benches and restore lighting so families can use it again.", area: "Lake View"),
+                outcome: "Repair benches and restore lighting so families can use it again.", area: "Lake View",
+                keywords: "park,bench"),
         Content(title: "Traffic signal not working at the busy junction",
                 body: "The signal has been blinking for days, causing near-misses during peak hours.",
-                outcome: "Restore signal operation and add a pedestrian phase.", area: "Ring Road")
+                outcome: "Restore signal operation and add a pedestrian phase.", area: "Ring Road",
+                keywords: "traffic,signal")
     ]
 
     private static let longBody = """
